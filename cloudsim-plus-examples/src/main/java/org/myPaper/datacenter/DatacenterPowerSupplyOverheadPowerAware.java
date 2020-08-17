@@ -70,6 +70,9 @@ public class DatacenterPowerSupplyOverheadPowerAware extends DatacenterPowerSupp
             throw new IllegalStateException("The IT power consumption or overhead power consumption can not be NaN!");
         }
 
+        sumPUE += getDynamicPUE(IT_PowerConsumption, 0);
+        numberOfPueSamples++;
+
         datacenterTimeSpanPowerUse += IT_PowerConsumption + Overhead_PowerConsumption;
 
         power += datacenterTimeSpanPowerUse;
@@ -146,11 +149,6 @@ public class DatacenterPowerSupplyOverheadPowerAware extends DatacenterPowerSupp
         DatacenterPro datacenterCustomized = (DatacenterPro) datacenter;
         double outsideTemperature = datacenterCustomized.getOutsideTemperature();
         double dynamicPUE = 1 + (0.2 + 0.01 * ITLoad + 0.01 * ITLoad * outsideTemperature) / ITLoad;
-
-        if (addedPowerConsumption == 0) {
-            sumPUE += dynamicPUE;
-            numberOfPueSamples++;
-        }
 
         return dynamicPUE;
     }
