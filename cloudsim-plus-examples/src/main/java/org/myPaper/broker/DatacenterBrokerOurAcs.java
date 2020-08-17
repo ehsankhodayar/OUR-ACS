@@ -6,6 +6,7 @@ import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.myPaper.acsAlgorithms.DatacenterSolutionEntry;
 import org.myPaper.acsAlgorithms.OurAcsAlgorithm.KneePointSelectionPolicy;
+import org.myPaper.acsAlgorithms.OurAcsAlgorithm.MinimumPowerSelectionPolicy;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -81,8 +82,9 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
                         getSimulation().clockStr(),
                         getName());
 
-                    Map<Vm, Host> kneeSolution = selectKneePoint(datacenterSolutionEntryList);
-                    performSolution(kneeSolution, isFallbackDatacenter);
+//                    Map<Vm, Host> kneeSolution = selectKneePoint(datacenterSolutionEntryList);
+                    Map<Vm, Host> solution = selectMinimumEnergyConsumption(datacenterSolutionEntryList);
+                    performSolution(solution, isFallbackDatacenter);
                     return true;
                 }
             }
@@ -92,8 +94,9 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
                 getSimulation().clockStr(),
                 getName());
 
-            Map<Vm, Host> kneeSolution = selectKneePoint(datacenterSolutionEntryList);
-            performSolution(kneeSolution, isFallbackDatacenter);
+//            Map<Vm, Host> kneeSolution = selectKneePoint(datacenterSolutionEntryList);
+            Map<Vm, Host> solution = selectMinimumEnergyConsumption(datacenterSolutionEntryList);
+            performSolution(solution, isFallbackDatacenter);
             return true;
         }
     }
@@ -174,5 +177,11 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
         KneePointSelectionPolicy kneePointSelectionPolicy = new KneePointSelectionPolicy(getVmWaitingList());
 
         return kneePointSelectionPolicy.getKneePoint(datacenterSolutionEntryList, true);
+    }
+
+    private Map<Vm, Host> selectMinimumEnergyConsumption(final List<DatacenterSolutionEntry> datacenterSolutionEntryList) {
+        MinimumPowerSelectionPolicy powerSelectionPolicy = new MinimumPowerSelectionPolicy(getVmWaitingList());
+
+        return powerSelectionPolicy.getSolutionWithMinimumPowerConsumption(datacenterSolutionEntryList);
     }
 }

@@ -204,7 +204,7 @@ public class KneePointSelectionPolicy {
      * @param datacenter the datacenter
      * @return the total power consumption in Watt-S (IT infrastructures' power consumption + datacenter's overhead power consumption)
      */
-    private double getSolutionTotalPowerConsumption(final Map<Vm, Host> solution, Datacenter datacenter) {
+    public double getSolutionTotalPowerConsumption(final Map<Vm, Host> solution, Datacenter datacenter) {
         Map<Host, List<Vm>> hostNewVmListMap = convertSolutionMapToHostTemporaryVmListMap(solution);
 
         DatacenterPowerSupplyOverheadPowerAware powerSupply = (DatacenterPowerSupplyOverheadPowerAware) datacenter.getPowerSupply();
@@ -308,7 +308,7 @@ public class KneePointSelectionPolicy {
      * @param solution the new list of VMs for the target host which are not created yet
      * @return the new CPU utilization of the target host in scale [0-1]
      */
-    private double getHostNewCpuUtilization(final Host host, final Map<Vm, Host> solution) {
+    protected double getHostNewCpuUtilization(final Host host, final Map<Vm, Host> solution) {
         //The new CPU utilization of the given host
         List<Vm> temporaryVmLit = convertSolutionMapToHostTemporaryVmListMap(solution).get(host);
         double utilization =

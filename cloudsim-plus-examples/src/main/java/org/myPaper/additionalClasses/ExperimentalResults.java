@@ -32,7 +32,8 @@ public class ExperimentalResults {
                 datacenterBroker.getCloudletSubmittedList().size())
             .sum();
 
-        SOURCE_DIR = new File(outputDirectory + "\\" + numberOfSubmittedVmReqs + "_VmCreationReqs");
+        SOURCE_DIR = new File(outputDirectory + "\\" + LocalTime.now().toString().replace(":", "-") +
+            "_" + numberOfSubmittedVmReqs + "_VmCreationReqs");
 
         if (!SOURCE_DIR.mkdir()) {
             throw new IllegalStateException("The system cannot create a new directory in the path specified");
