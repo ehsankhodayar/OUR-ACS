@@ -82,7 +82,7 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
                         getSimulation().clockStr(),
                         getName());
 
-//                    Map<Vm, Host> kneeSolution = selectKneePoint(datacenterSolutionEntryList);
+//                    Map<Vm, Host> solution = selectKneePoint(datacenterSolutionEntryList);
                     Map<Vm, Host> solution = selectMinimumEnergyConsumption(datacenterSolutionEntryList);
                     performSolution(solution, isFallbackDatacenter);
                     return true;
@@ -94,7 +94,7 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
                 getSimulation().clockStr(),
                 getName());
 
-//            Map<Vm, Host> kneeSolution = selectKneePoint(datacenterSolutionEntryList);
+//            Map<Vm, Host> solution = selectKneePoint(datacenterSolutionEntryList);
             Map<Vm, Host> solution = selectMinimumEnergyConsumption(datacenterSolutionEntryList);
             performSolution(solution, isFallbackDatacenter);
             return true;

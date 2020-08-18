@@ -83,11 +83,13 @@ public class MainClass_Liu2016 extends ParentClass {
         simulation.terminateAt(SIMULATION_TIME);
         simulation.start();
 
-        final List<Cloudlet> finishedCloudlets = new ArrayList<>();
+        generateExperimentalResults();
+
+/*        final List<Cloudlet> finishedCloudlets = new ArrayList<>();
         finishedCloudlets.addAll(broker1.getCloudletFinishedList());
         finishedCloudlets.addAll(broker2.getCloudletFinishedList());
         finishedCloudlets.addAll(broker3.getCloudletFinishedList());
-        new CloudletsTableBuilder(finishedCloudlets).build();
+        new CloudletsTableBuilder(finishedCloudlets).build();*/
     }
 
     /**
@@ -96,7 +98,7 @@ public class MainClass_Liu2016 extends ParentClass {
      * @return a new VM allocation migration policy
      */
     private VmAllocationPolicyMigration createNewVmAllocationPolicy() {
-        Liu liu = new Liu2016(50, 5, 0.7, 0.1, 0.1, 2);
+        Liu liu = new Liu2016(5, 5, 0.7, 0.1, 0.1, 2);
         return new VmAllocationPolicyMigrationStaticThresholdLiu(liu);
     }
 }

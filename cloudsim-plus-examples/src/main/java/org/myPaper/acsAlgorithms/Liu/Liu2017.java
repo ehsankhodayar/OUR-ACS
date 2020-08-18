@@ -302,8 +302,13 @@ public class Liu2017 extends LiuAbstract {
 
         SourceLoop:
         for (Map<Vm, Host> sourceSolution : solutionList) {
+
+            if (nonDominatedSolutionsInFirstFront.parallelStream()
+                .anyMatch(solution -> solution.equals(sourceSolution))) {
+                continue ;
+            }
             for (Map<Vm, Host> targetSolution : solutionList) {
-                if (sourceSolution != targetSolution) {
+                if (sourceSolution.equals(targetSolution)) {
                     if (solutionPowerConsumptionMap.get(targetSolution) <= solutionPowerConsumptionMap.get(sourceSolution) &&
                         solutionNumberOfMigrationMap.get(targetSolution) <= solutionNumberOfMigrationMap.get(sourceSolution)) {
 

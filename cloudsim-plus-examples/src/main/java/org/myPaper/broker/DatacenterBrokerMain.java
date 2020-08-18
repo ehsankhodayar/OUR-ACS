@@ -40,6 +40,9 @@ public abstract class DatacenterBrokerMain extends DatacenterBrokerAbstractCusto
      */
     public DatacenterBrokerMain(CloudSim simulation, String name, List<Datacenter> datacenterList) {
         super(simulation, name);
+
+        Collections.shuffle(datacenterList);
+
         providerDatacenters = datacenterList;
         cloudCoordinatorList = new ArrayList<>();
     }

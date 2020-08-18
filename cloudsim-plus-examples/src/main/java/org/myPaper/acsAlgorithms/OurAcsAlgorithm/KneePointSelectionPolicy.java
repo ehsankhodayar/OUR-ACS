@@ -4,7 +4,7 @@ import org.cloudbus.cloudsim.datacenters.Datacenter;
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.myPaper.acsAlgorithms.DatacenterSolutionEntry;
-import org.myPaper.datacenter.DatacenterPowerSupplyOverheadPowerAware;
+import org.myPaper.additionalClasses.NormalizeZeroOne;
 import org.myPaper.datacenter.DatacenterPro;
 
 import java.util.*;
@@ -48,71 +48,83 @@ public class KneePointSelectionPolicy {
             nonDominatedSolutions = datacenterSolutionListMap;
         }
 
-        //Power consumption
-        double minimumPowerConsumption = nonDominatedSolutions.stream()
-            .map(datacenterSolutionEntry -> (DatacenterPro) datacenterSolutionEntry.getDatacenter())
-            .mapToDouble(datacenterPro -> datacenterPro.getPowerSupplyOverheadPowerAware().getMinimumTotalPowerConsumption())
-            .sum();
-        double maximumPowerConsumption = nonDominatedSolutions.stream()
-            .map(datacenterSolutionEntry -> (DatacenterPro) datacenterSolutionEntry.getDatacenter())
-            .mapToDouble(datacenterPro -> datacenterPro.getPowerSupplyOverheadPowerAware().getMaximumTotalPowerConsumption())
-            .sum();;
-
-        //Carbon footprint
-        double minimumCarbonFootprint = nonDominatedSolutions.stream()
-            .map(datacenterSolutionEntry -> (DatacenterPro) datacenterSolutionEntry.getDatacenter())
-            .mapToDouble(DatacenterPro::getMinimumPossibleCarbonFootprint)
-            .sum();
-        double maximumCarbonFootprint = nonDominatedSolutions.stream()
-            .map(datacenterSolutionEntry -> (DatacenterPro) datacenterSolutionEntry.getDatacenter())
-            .mapToDouble(DatacenterPro::getMaximumPossibleCarbonFootprint)
-            .sum();;
-
-        //Active hosts
-        int minimumNumberOfActiveHosts = 0;
-        int maximumNumberOfActiveHosts = nonDominatedSolutions.stream()
-            .mapToInt(datacenterSolutionEntry -> datacenterSolutionEntry.getDatacenter().getHostList().size())
-            .sum();
-
-        //The number of Vm migrations
-        int minimumNumberOfVmMigrations = 0;
-        int maximumNumberOfVmMigrations = getRequestedVmList().size();
-
-        //Total cost
-        double totalMinimumCost = nonDominatedSolutions.stream()
-            .map(datacenterSolutionEntry -> (DatacenterPro) datacenterSolutionEntry.getDatacenter())
-            .mapToDouble(DatacenterPro::getMinimumPossibleCost)
-            .sum();
-        double totalMaximumCost = nonDominatedSolutions.stream()
-            .map(datacenterSolutionEntry -> (DatacenterPro) datacenterSolutionEntry.getDatacenter())
-            .mapToDouble(DatacenterPro::getMaximumPossibleCost)
-            .sum();
+        if (nonDominatedSolutions.size() == 1) {
+            return nonDominatedSolutions.get(0).getSolution();
+        }
 
         //Record the hypervolume of each solution in the following map
         Map<Map<Vm, Host>, Double> solutionHypervolumeMap = new HashMap<>();
-
         for (DatacenterSolutionEntry datacenterSolutionEntry : nonDominatedSolutions) {
+            //Power consumption
+            double currentITPowerConsumption = getSolutionCurrentITPowerConsumption(datacenterSolutionEntry.getSolution());
+
+            double minimumPowerConsumption =
+                convertSolutionMapToHostTemporaryVmListMap(datacenterSolutionEntry.getSolution()).keySet().stream()
+                .mapToDouble(host -> host.getPowerModel().getPower(0))
+                .sum();
+
+            double maximumPowerConsumption =
+                convertSolutionMapToHostTemporaryVmListMap(datacenterSolutionEntry.getSolution()).keySet().stream()
+                .mapToDouble(host -> host.getPowerModel().getMaxPower())
+                .sum();
+
+            //Compute overhead
+            double extraMaximumPower = (maximumPowerConsumption - currentITPowerConsumption);
+            maximumPowerConsumption +=
+                ((extraMaximumPower) *
+                    (getDatacenterPro(datacenterSolutionEntry.getDatacenter()).getDatacenterDynamicPUE(extraMaximumPower) - 1));
+
+            //Carbon footprint
+            double minimumCarbonFootprint = getDatacenterPro(datacenterSolutionEntry.getDatacenter()).
+                getTotalCarbonFootprint(minimumPowerConsumption / 3600);
+
+            double maximumCarbonFootprint = getDatacenterPro(datacenterSolutionEntry.getDatacenter()).
+                getTotalCarbonFootprint(maximumPowerConsumption / 3600);
+
+            //Active hosts
+            int minimumNumberOfActiveHosts = 0;
+            int maximumNumberOfActiveHosts = datacenterSolutionEntry.getDatacenter().getHostList().size();
+
+            //The number of Vm migrations
+            int minimumNumberOfVmMigrations = 0;
+            int maximumNumberOfVmMigrations = getRequestedVmList().size();
+
+            //Total cost
+            double totalMinimumCost =
+                getDatacenterPro(datacenterSolutionEntry.getDatacenter()).getTotalEnergyCost(minimumPowerConsumption / 3600);
+
+            totalMinimumCost +=
+                getDatacenterPro(datacenterSolutionEntry.getDatacenter()).getTotalCarbonTax(minimumPowerConsumption / 3600);
+
+            double totalMaximumCost =
+                getDatacenterPro(datacenterSolutionEntry.getDatacenter()).getTotalEnergyCost(maximumPowerConsumption / 3600);
+
+            totalMaximumCost +=
+                getDatacenterPro(datacenterSolutionEntry.getDatacenter()).getTotalCarbonTax(maximumPowerConsumption / 3600);
+
+
             Datacenter datacenter = datacenterSolutionEntry.getDatacenter();
             Map<Vm, Host> solution = datacenterSolutionEntry.getSolution();
 
             double solutionTotalPowerConsumption = getSolutionTotalPowerConsumption(solution, datacenter);
 
             double totalPowerConsumptionNormalized =
-                normalizeBetweenZeroAndOne(solutionTotalPowerConsumption, maximumPowerConsumption, minimumPowerConsumption);
+                NormalizeZeroOne.normalize(solutionTotalPowerConsumption, maximumPowerConsumption, minimumPowerConsumption);
             double totalCarbonFootprintNormalized =
-                normalizeBetweenZeroAndOne(getTotalCarbonEmission(solutionTotalPowerConsumption, datacenter),
+                NormalizeZeroOne.normalize(getTotalCarbonEmission(solutionTotalPowerConsumption, datacenter),
                     maximumCarbonFootprint, minimumCarbonFootprint);
             double numberOfActiveHostsNormalized =
-                normalizeBetweenZeroAndOne(getSolutionNumberOfActiveHosts(solution, datacenter),
+                NormalizeZeroOne.normalize(getSolutionNumberOfActiveHosts(solution),
                     maximumNumberOfActiveHosts, minimumNumberOfActiveHosts);
             double numberOfVmMigrationsNormalized =
-                normalizeBetweenZeroAndOne(getMigrationMapOfSolution(solution).size(), maximumNumberOfVmMigrations, minimumNumberOfVmMigrations);
+                NormalizeZeroOne.normalize(getMigrationMapOfSolution(solution).size(), maximumNumberOfVmMigrations, minimumNumberOfVmMigrations);
             double totalCostNormalized =
-                normalizeBetweenZeroAndOne(getTotalCost(solutionTotalPowerConsumption, datacenter), totalMaximumCost, totalMinimumCost);
+                NormalizeZeroOne.normalize(getTotalCost(solutionTotalPowerConsumption, datacenter), totalMaximumCost, totalMinimumCost);
+            double totalCost = getTotalCost(solutionTotalPowerConsumption, datacenter);
 
             double hypervolume = (referencePint - totalPowerConsumptionNormalized) *
                 (referencePint - totalCarbonFootprintNormalized) *
-                (referencePint - numberOfActiveHostsNormalized) *
+                /*(referencePint - numberOfActiveHostsNormalized) **/
                 (referencePint - numberOfVmMigrationsNormalized) *
                 (referencePint - totalCostNormalized);
 
@@ -154,7 +166,7 @@ public class KneePointSelectionPolicy {
 
             solutionPowerConsumptionMap.put(datacenterSolutionEntry, solutionTotalPowerConsumption);
             solutionCarbonFootprintMap.put(datacenterSolutionEntry, getTotalCarbonEmission(solutionTotalPowerConsumption, datacenter));
-            solutionNumberOfActiveHostsMap.put(datacenterSolutionEntry, getSolutionNumberOfActiveHosts(solution, datacenter));
+            solutionNumberOfActiveHostsMap.put(datacenterSolutionEntry, getSolutionNumberOfActiveHosts(solution));
             solutionNumberOfMigrationMap.put(datacenterSolutionEntry, getMigrationMapOfSolution(solution).size());
             solutionTotalCost.put(datacenterSolutionEntry, getTotalCost(solutionTotalPowerConsumption, datacenter));
         }
@@ -163,28 +175,33 @@ public class KneePointSelectionPolicy {
 
         SourceLoop:
         for (DatacenterSolutionEntry entrySource : datacenterSolutionListMap) {
-            Datacenter sourceDatacenter = entrySource.getDatacenter();
             Map<Vm, Host> sourceSolution = entrySource.getSolution();
 
+            if (nonDominatedSolutionsInFirstFront.parallelStream()
+                .anyMatch(datacenterSolutionEntry -> datacenterSolutionEntry.getSolution().equals(sourceSolution))) {
+                continue ;
+            }
+
             for (DatacenterSolutionEntry entryTarget : datacenterSolutionListMap) {
-                Datacenter targetDatacenter = entryTarget.getDatacenter();
                 Map<Vm, Host> targetSolution = entryTarget.getSolution();
 
-                if (sourceDatacenter != targetDatacenter) {
-                    if (solutionPowerConsumptionMap.get(entryTarget) <= solutionPowerConsumptionMap.get(entrySource) &&
-                        solutionCarbonFootprintMap.get(entryTarget) <= solutionCarbonFootprintMap.get(entrySource) &&
-                        solutionNumberOfActiveHostsMap.get(entryTarget) <= solutionNumberOfActiveHostsMap.get(entrySource) &&
-                        solutionNumberOfMigrationMap.get(entryTarget) <= solutionNumberOfMigrationMap.get(entrySource) &&
-                        solutionTotalCost.get(entryTarget) <= solutionTotalCost.get(entrySource)) {
+                if (sourceSolution.equals(targetSolution)) {
+                    continue ;
+                }
 
-                        if (solutionPowerConsumptionMap.get(entryTarget) < solutionPowerConsumptionMap.get(entrySource) ||
-                            solutionCarbonFootprintMap.get(entryTarget) < solutionCarbonFootprintMap.get(entrySource) ||
-                            solutionNumberOfActiveHostsMap.get(entryTarget) < solutionNumberOfActiveHostsMap.get(entrySource) ||
-                            solutionNumberOfMigrationMap.get(entryTarget) < solutionNumberOfMigrationMap.get(entrySource) ||
-                            solutionTotalCost.get(entryTarget) < solutionTotalCost.get(entrySource)) {
-                            //The target solution dominates the source solution
-                            continue SourceLoop;
-                        }
+                if (solutionPowerConsumptionMap.get(entryTarget) <= solutionPowerConsumptionMap.get(entrySource) &&
+                    solutionCarbonFootprintMap.get(entryTarget) <= solutionCarbonFootprintMap.get(entrySource) &&
+                    solutionNumberOfActiveHostsMap.get(entryTarget) <= solutionNumberOfActiveHostsMap.get(entrySource) &&
+                    solutionNumberOfMigrationMap.get(entryTarget) <= solutionNumberOfMigrationMap.get(entrySource) &&
+                    solutionTotalCost.get(entryTarget) <= solutionTotalCost.get(entrySource)) {
+
+                    if (solutionPowerConsumptionMap.get(entryTarget) < solutionPowerConsumptionMap.get(entrySource) ||
+                        solutionCarbonFootprintMap.get(entryTarget) < solutionCarbonFootprintMap.get(entrySource) ||
+                        solutionNumberOfActiveHostsMap.get(entryTarget) < solutionNumberOfActiveHostsMap.get(entrySource) ||
+                        solutionNumberOfMigrationMap.get(entryTarget) < solutionNumberOfMigrationMap.get(entrySource) ||
+                        solutionTotalCost.get(entryTarget) < solutionTotalCost.get(entrySource)) {
+                        //The target solution dominates the source solution
+                        continue SourceLoop;
                     }
                 }
             }
@@ -205,17 +222,34 @@ public class KneePointSelectionPolicy {
      * @return the total power consumption in Watt-S (IT infrastructures' power consumption + datacenter's overhead power consumption)
      */
     public double getSolutionTotalPowerConsumption(final Map<Vm, Host> solution, Datacenter datacenter) {
+        DatacenterPro datacenterPro = (DatacenterPro) datacenter;
         Map<Host, List<Vm>> hostNewVmListMap = convertSolutionMapToHostTemporaryVmListMap(solution);
 
-        DatacenterPowerSupplyOverheadPowerAware powerSupply = (DatacenterPowerSupplyOverheadPowerAware) datacenter.getPowerSupply();
+        double currentITPowerConsumption = getSolutionCurrentITPowerConsumption(solution);
 
-        double ITPowerConsumption = hostNewVmListMap.keySet().parallelStream()
+        double newITPowerConsumption = hostNewVmListMap.keySet().parallelStream()
             .mapToDouble(host -> host.getPowerModel().getPower(getHostNewCpuUtilization(host, solution)))
             .sum();
 
-        double overheadPowerConsumption = powerSupply.getOverheadPowerConsumption(ITPowerConsumption, 0);
+        double extraITPowerConsumption = newITPowerConsumption - currentITPowerConsumption;
 
-        return ITPowerConsumption + overheadPowerConsumption;
+        double overheadPowerConsumption = extraITPowerConsumption * (datacenterPro.getDatacenterDynamicPUE(extraITPowerConsumption) - 1);
+
+        return newITPowerConsumption + overheadPowerConsumption;
+    }
+
+    /**
+     * Gets the solution current power consumption (solution without temporary Vms) in Watt-Sec.
+     *
+     * @param solution the solution
+     * @return the solution current power consumption in Watt-Sec
+     */
+    private double getSolutionCurrentITPowerConsumption(final Map<Vm, Host> solution) {
+        Map<Host, List<Vm>> hostNewVmListMap = convertSolutionMapToHostTemporaryVmListMap(solution);
+
+        return hostNewVmListMap.keySet().parallelStream()
+            .mapToDouble(host -> host.getPowerModel().getPower())
+            .sum();
     }
 
     /**
@@ -236,19 +270,12 @@ public class KneePointSelectionPolicy {
      * Gets solution the total number of active hosts at the target datacenter.
      *
      * @param solution the solution
-     * @param datacenter the datacenter
      * @return the number of active hosts
      */
-    private int getSolutionNumberOfActiveHosts(final Map<Vm, Host> solution, Datacenter datacenter) {
-        List<Host> newHostList = convertSolutionMapToHostTemporaryVmListMap(solution).keySet().parallelStream()
-            .collect(Collectors.toList());
+    private int getSolutionNumberOfActiveHosts(final Map<Vm, Host> solution) {
+        List<Host> newHostList = new ArrayList<>(convertSolutionMapToHostTemporaryVmListMap(solution).keySet());
 
-        List<Host> currentHostList = datacenter.getHostList().parallelStream()
-            .filter(Host::isActive)
-            .filter(host -> !newHostList.contains(host))
-            .collect(Collectors.toList());
-
-        return newHostList.size() + currentHostList.size();
+        return newHostList.size();
     }
 
     /**
@@ -338,8 +365,7 @@ public class KneePointSelectionPolicy {
 
         int totalReservedMips = vmList.parallelStream()
             .filter(vm -> vm.getHost() != host || getRequestedVmList().contains(vm))
-            .mapToInt(vm -> vm.isCreated() && vm.getTotalCpuMipsUtilization() != 0 ? (int) vm.getTotalCpuMipsUtilization() :
-                (int) vm.getTotalMipsCapacity())
+            .mapToInt(vm -> vm.isCreated() ? (int) vm.getTotalCpuMipsUtilization() : (int) vm.getTotalMipsCapacity())
             .sum();
 
         int totalAmountOfReallocationVmsMips = host.getVmList().parallelStream()
@@ -367,18 +393,6 @@ public class KneePointSelectionPolicy {
      */
     private void throwIllegalState(String errorMsg, String callerName) {
         throw new IllegalStateException("Knee point selection policy: " + callerName + " " + errorMsg + "!");
-    }
-
-    /**
-     * Normalizes a number in the range of 0 and 1.
-     *
-     * @param nonNormalizeNumber the non normalized number
-     * @param max                the maximum value in that range
-     * @param min                the minimum value in that range
-     * @return the normalized number in the range of 0 and 1
-     */
-    private double normalizeBetweenZeroAndOne(double nonNormalizeNumber, double max, double min) {
-        return (nonNormalizeNumber - min) / (max - min);
     }
 
     BiFunction<Double, Integer, Double> roundDouble = (value, places) -> {
@@ -412,5 +426,9 @@ public class KneePointSelectionPolicy {
         vmList.addAll(hostRemainingVmList);
 
         return vmList;
+    }
+
+    private DatacenterPro getDatacenterPro(Datacenter datacenter) {
+        return (DatacenterPro) datacenter;
     }
 }

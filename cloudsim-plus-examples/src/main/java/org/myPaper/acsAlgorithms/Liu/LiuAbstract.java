@@ -4,6 +4,7 @@ import org.cloudbus.cloudsim.datacenters.Datacenter;
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.util.Conversion;
 import org.cloudbus.cloudsim.vms.Vm;
+import org.myPaper.additionalClasses.NormalizeZeroOne;
 import org.myPaper.additionalClasses.SortMap;
 
 import java.util.*;
@@ -744,16 +745,11 @@ public abstract class LiuAbstract implements Liu {
     protected double getSolutionTotalResourceWastage(Map<Vm, Host> solution) {
         Map<Host, List<Vm>> hostNewVmList = convertSolutionMapToHostNewVmListMap(solution);
 
-        double totalWastage = 0;
-        for (Host host : hostNewVmList.keySet()) {
-            double hostMipsWastage =
-                getHostTotalMipsWastage(host, hostNewVmList.get(host));
+        double totalWastage = hostNewVmList.keySet().parallelStream()
+            .mapToDouble(host -> getHostTotalMipsWastage(host, hostNewVmList.get(host)) + getHostTotalMemoryWastage(host, hostNewVmList.get(host)))
+            .sum();
 
-            double hostMemoryWastage =
-                getHostTotalMemoryWastage(host, hostNewVmList.get(host));
-
-            totalWastage += hostMipsWastage + hostMemoryWastage;
-        }
+        totalWastage = NormalizeZeroOne.normalize(totalWastage, hostNewVmList.size() * 2, 0);
 
         return totalWastage;
     }

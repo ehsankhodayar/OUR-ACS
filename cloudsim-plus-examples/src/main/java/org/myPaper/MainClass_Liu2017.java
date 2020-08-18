@@ -83,11 +83,13 @@ public class MainClass_Liu2017 extends ParentClass {
         simulation.terminateAt(SIMULATION_TIME);
         simulation.start();
 
-        final List<Cloudlet> finishedCloudlets = new ArrayList<>();
+        generateExperimentalResults();
+
+        /*final List<Cloudlet> finishedCloudlets = new ArrayList<>();
         finishedCloudlets.addAll(broker1.getCloudletFinishedList());
         finishedCloudlets.addAll(broker2.getCloudletFinishedList());
         finishedCloudlets.addAll(broker3.getCloudletFinishedList());
-        new CloudletsTableBuilder(finishedCloudlets).build();
+        new CloudletsTableBuilder(finishedCloudlets).build();*/
     }
 
     /**
@@ -96,11 +98,11 @@ public class MainClass_Liu2017 extends ParentClass {
      * @return a new VM allocation migration policy
      */
     private VmAllocationPolicyMigration createNewVmAllocationPolicy() {
-        Liu liu2017 = new Liu2017(20, 5, 0.7, 0.1, 0.1, 2, OVERUTILIZATION_THRESHOLD, 10);;
+        Liu liu2017 = new Liu2017(5, 5, 0.7, 0.1, 0.1, 2, OVERUTILIZATION_THRESHOLD, 10);;
 
         VmAllocationPolicyMigrationStaticThresholdLiu vmAllocationPolicyMigration =
             new VmAllocationPolicyMigrationStaticThresholdLiu(liu2017);
-        vmAllocationPolicyMigration.setOverUtilizationThreshold(OVERUTILIZATION_THRESHOLD);
+        vmAllocationPolicyMigration.setOverUtilizationThreshold(0.5);
         vmAllocationPolicyMigration.setUnderUtilizationThreshold(UNDERUTILIZATION_THRESHOLD);
 
         return vmAllocationPolicyMigration;

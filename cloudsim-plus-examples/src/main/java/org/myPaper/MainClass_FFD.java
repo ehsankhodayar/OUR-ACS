@@ -66,10 +66,12 @@ public class MainClass_FFD extends ParentClass {
         simulation.terminateAt(SIMULATION_TIME);
         simulation.start();
 
-        final List<Cloudlet> finishedCloudlets = new ArrayList<>();
+        generateExperimentalResults();
+
+        /*final List<Cloudlet> finishedCloudlets = new ArrayList<>();
         finishedCloudlets.addAll(broker1.getCloudletFinishedList());
         finishedCloudlets.addAll(broker2.getCloudletFinishedList());
         finishedCloudlets.addAll(broker3.getCloudletFinishedList());
-        new CloudletsTableBuilder(finishedCloudlets).build();
+        new CloudletsTableBuilder(finishedCloudlets).build();*/
     }
 }

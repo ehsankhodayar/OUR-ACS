@@ -131,7 +131,7 @@ public class DatacenterBrokerMainKhosravi2017 extends DatacenterBrokerMain {
         for (Datacenter datacenter : allowedDatacenterList) {
             final double avgVmUtil = getVmAverageCpuUtilization(vm, datacenter);
             final double vmPowerConsumption = vmHoldingTime * getAveragePowerConsumption(datacenter, avgVmUtil);
-            final double vmOverheadPowerConsumption = vmPowerConsumption * getDatacenterPro(datacenter).getDatacenterDynamicPUE(vmPowerConsumption);
+            final double vmOverheadPowerConsumption = vmPowerConsumption * (getDatacenterPro(datacenter).getDatacenterDynamicPUE(vmPowerConsumption) - 1);
             final double vmTotalPowerConsumption = vmPowerConsumption + vmOverheadPowerConsumption;
 
             //calculating energy and carbon cost

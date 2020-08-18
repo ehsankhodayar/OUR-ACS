@@ -4,6 +4,7 @@ import org.cloudbus.cloudsim.datacenters.Datacenter;
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.myPaper.acsAlgorithms.DatacenterSolutionEntry;
+import org.myPaper.additionalClasses.NormalizeZeroOne;
 import org.myPaper.additionalClasses.SortMap;
 import org.myPaper.datacenter.DatacenterPro;
 
@@ -479,24 +480,19 @@ public class OurAcs {
     }
 
     /**
-     * Gets the total resource wastage of the given solution.
+     * Gets the total resource wastage of the given solution in scale 0-1.
      *
      * @param solution the solution
-     * @return the total resource wastage
+     * @return the total resource wastage in scale 0-1
      */
-    protected double getSolutionTotalResourceWastage(Map<Vm, Host> solution) {
+    protected double getSolutionTotalResourceWastageNormalize(Map<Vm, Host> solution) {
         Map<Host, List<Vm>> hostNewVmList = convertSolutionMapToHostTemporaryVmListMap(solution);
 
-        double totalWastage = 0;
-        for (Host host : hostNewVmList.keySet()) {
-            double hostMipsWastage =
-                getHostTotalMipsWastage(host, hostNewVmList.get(host));
+        double totalWastage = hostNewVmList.keySet().parallelStream()
+            .mapToDouble(host -> getHostTotalMipsWastage(host, hostNewVmList.get(host)) + getHostTotalMemoryWastage(host, hostNewVmList.get(host)))
+            .sum();
 
-            double hostMemoryWastage =
-                getHostTotalMemoryWastage(host, hostNewVmList.get(host));
-
-            totalWastage += hostMipsWastage + hostMemoryWastage;
-        }
+        totalWastage = NormalizeZeroOne.normalize(totalWastage, hostNewVmList.size() * 2, 0);
 
         return totalWastage;
     }
@@ -520,7 +516,12 @@ public class OurAcs {
             throwIllegalState("The CPU or Memory wastage must be >= 0 && < 1", "getHostHeuristic");
         }
 
-        return 1 / (cpuWastage + memoryWastage + 1);
+        final double hostFutureCpuUtilization = getHostMipsUtilization(host, hostTemporaryVmListCopy) / host.getTotalMipsCapacity();
+        final double powerConsumption = host.getPowerModel().getPower(hostFutureCpuUtilization);
+        double normalizedPowerConsumption =
+            NormalizeZeroOne.normalize(powerConsumption, host.getPowerModel().getMaxPower(), host.getPowerModel().getPower(0));
+
+        return  (1 / (cpuWastage + memoryWastage + 1)) + (1 / (normalizedPowerConsumption + 1));
     }
 
     /**
@@ -721,11 +722,55 @@ public class OurAcs {
             Vm vm = vmHostEntry.getKey();
             Host host = vmHostEntry.getValue();
 
+            double resourceWastage = getSolutionTotalResourceWastageNormalize(solution);
+            double solutionPowerConsumptionNormalized = getNormalizedSolutionTotalPowerConsumption(solution);
             double currentPheromoneValue = pheromoneInformationMap.get(vm).getPheromoneValue(host);
-            double reinforcementValue = (1 / (getSolutionTotalResourceWastage(solution) + 1));
+            double reinforcementValue = (1 / (resourceWastage + 1)) + (1 / (solutionPowerConsumptionNormalized + 1));
             double newPheromoneValue = (1 - PHEROMONE_DECAY) * currentPheromoneValue + PHEROMONE_DECAY * reinforcementValue;
             pheromoneInformationMap.get(vm).updatePheromoneValue(host, newPheromoneValue);
         }
+    }
+
+    /**
+     * Gets the total power consumption of the given solution in Watt-S. It consists the total power consumption of IT
+     * infrastructures by the given hosts and the datacenter's overhead power consumption.
+     *
+     * @param solution the solution
+     * @return the total power consumption in Watt-S (IT infrastructures' power consumption + datacenter's overhead power consumption)
+     */
+    public double getNormalizedSolutionTotalPowerConsumption(final Map<Vm, Host> solution) {
+        Map<Host, List<Vm>> hostNewVmListMap = convertSolutionMapToHostTemporaryVmListMap(solution);
+
+        double currentITPowerConsumption = hostNewVmListMap.keySet().parallelStream()
+            .mapToDouble(host -> host.getPowerModel().getPower())
+            .sum();
+
+        double newITPowerConsumption = hostNewVmListMap.keySet().parallelStream()
+            .mapToDouble(host ->
+                host.getPowerModel().getPower(getHostMipsUtilization(host, hostNewVmListMap.get(host)) / host.getTotalMipsCapacity()))
+            .sum();
+
+        double extraITPowerConsumption = newITPowerConsumption - currentITPowerConsumption;
+
+        double overheadPowerConsumption = extraITPowerConsumption * (datacenter.getDatacenterDynamicPUE(extraITPowerConsumption) - 1);
+
+        double totalPowerConsumption = newITPowerConsumption + overheadPowerConsumption;
+
+        double minimumPowerConsumption =
+            hostNewVmListMap.keySet().stream()
+                .mapToDouble(host -> host.getPowerModel().getPower(0))
+                .sum();
+
+        double maximumPowerConsumption =
+            hostNewVmListMap.keySet().stream()
+                .mapToDouble(host -> host.getPowerModel().getMaxPower())
+                .sum();
+
+        //Compute overhead
+        double extraMaximumPower = (maximumPowerConsumption - currentITPowerConsumption);
+        maximumPowerConsumption += ((extraMaximumPower) * datacenter.getDatacenterDynamicPUE(extraMaximumPower) - 1);
+
+        return NormalizeZeroOne.normalize(totalPowerConsumption, maximumPowerConsumption, minimumPowerConsumption);
     }
 
     BiFunction<Double, Integer, Double> roundDouble = (value, places) -> {

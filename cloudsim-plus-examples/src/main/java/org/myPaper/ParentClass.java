@@ -23,10 +23,10 @@ import java.util.function.BiFunction;
 
 public abstract class ParentClass {
     //SimulatorConfigurations
-    protected static final int SIMULATION_TIME = 86400; //5 days
+    protected static final int SIMULATION_TIME = 43200; //5 days
     protected static CloudSim simulation;
     protected static final LocalTime SIMULATION_START_TIME = LocalTime.now();
-    protected final String OUTPUT_DIRECTORY = "c:\\users\\ehsan\\desktop\\simulation-logs";
+    protected final String OUTPUT_DIRECTORY = "C:\\Users\\Administrator\\Desktop\\simulation-logs";
 
     //Broker Configurations
     protected static final boolean CLOUD_FEDERATION = false;
@@ -37,8 +37,8 @@ public abstract class ParentClass {
     //Datacenter Configurations
     protected final double SCHEDULING_INTERVAL = 100; //Every 100 seconds.
     protected final boolean LIVE_VM_MIGRATION = true;
-    protected final double OVERLOAD_AND_UNDERLOAD_MONITORING_INTERVAL = 600; //Every 10 minutes.
-    protected final double UNDERUTILIZATION_THRESHOLD = 0.5;
+    protected final double OVERLOAD_AND_UNDERLOAD_MONITORING_INTERVAL = 300; //Every 10 minutes.
+    protected final double UNDERUTILIZATION_THRESHOLD = 0.3;
     protected final double OVERUTILIZATION_THRESHOLD = 0.9;
     //------------------------------------Datacenter1------------------------------------
     protected static DatacenterPro datacenter1; //Palo Alto, California, USA
@@ -96,12 +96,12 @@ public abstract class ParentClass {
     protected final double DC9_CARBON_TAX = 48 * 100; //Cents/Ton
 
     //Host Configurations
-    protected final int MAXIMUM_NUMBER_OF_HOSTS = 180; //The maximum number of hosts must be equal or greater than the number of host categories
+    protected final int MAXIMUM_NUMBER_OF_HOSTS = 80; //The maximum number of hosts must be equal or greater than the number of host categories
     protected final int IDLE_SHUTDOWN_DEADLINE = 60; //One minute
 
     //VM Configurations
     protected final double VM_DESTRUCTION_DELAY = 60; //one minute
-    protected final double VM_SUBMISSION_INTERVAL = 300; //every 10 minutes
+    protected final double VM_SUBMISSION_INTERVAL = 100; //every 10 minutes
     protected static double lastVmListSubmissionTime;
 
     //Cloudlet Configurations
@@ -163,6 +163,9 @@ public abstract class ParentClass {
         if (hostList.isEmpty()) {
             throw new IllegalStateException("The host list of a data center could not be empty!");
         }
+
+        //Shuffling the list of hosts
+        Collections.shuffle(hostList);
 
         DatacenterPro datacenterPro = new DatacenterPro(simulation, hostList, new VmAllocationPolicyFirstFitCustomized());
         datacenterPro.setName(name);
