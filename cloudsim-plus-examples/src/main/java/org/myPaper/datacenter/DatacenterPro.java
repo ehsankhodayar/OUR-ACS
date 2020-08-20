@@ -66,9 +66,7 @@ public class DatacenterPro extends DatacenterSimple {
      */
     private Map<Vm, Host> migrationQueue;
 
-    private final List<HostEventInfo> hostEventInfoExecutionList;
-
-    private final List<HostEventInfo> hostEventListenerRemoveQueue;
+    private final List<HostEventInfo> hostEventListenerSuspendQueue;
 
     /**
      * @see #getMaximumNumberOfLiveVmMigrations()
@@ -89,11 +87,11 @@ public class DatacenterPro extends DatacenterSimple {
         carbonRateAndTaxModel = null;
         hostOverUtilizationHistoryMap = new HashMap<>();
         migrationQueue = new HashMap<>();
-        hostEventInfoExecutionList = new ArrayList<>();
-        hostEventListenerRemoveQueue = new ArrayList<>();
+        hostEventListenerSuspendQueue = new ArrayList<>();
         vmNumberOfVmMigrationsMap = new HashMap<>();
 
         getSimulation().addOnClockTickListener(this::simulationClockTickListener);
+        getHostList().parallelStream().forEach(host -> host.addOnUpdateProcessingListener(this::hostOnUpdateProcessingListener));
     }
 
     /**
@@ -122,35 +120,22 @@ public class DatacenterPro extends DatacenterSimple {
      */
     public void enableHostOverUtilizedHistoryRecorder(final boolean activate) {
         if (activate) {
-            if (!hostOverUtilizedStateHistory) {
-                hostOverUtilizedStateHistory = true;
-                getHostList().forEach(host -> host.addOnUpdateProcessingListener(this::hostOverUtilizationCheckUp));
-            }
+            hostOverUtilizedStateHistory = true;
         } else {
             hostOverUtilizedStateHistory = false;
         }
     }
 
     private void hostOverUtilizationCheckUp(HostEventInfo hostEventInfo) {
-        if (hostEventListenerRemoveQueue.contains(hostEventInfo)) {
+        if (!hostOverUtilizedStateHistory || hostEventListenerSuspendQueue.contains(hostEventInfo)) {
             return;
         }
-
-        hostEventInfoExecutionList.add(hostEventInfo);
-
         Host host = hostEventInfo.getHost();
-
-        if (!hostOverUtilizedStateHistory) {
-            hostEventListenerRemoveQueue.add(hostEventInfo);
-            hostOverUtilizationHistoryMap.clear();
-        }
 
         if (host.getCpuPercentUtilization() >= 1.0 || host.getPreviousUtilizationOfCpu() >= 1.0) {
             hostOverUtilizationHistoryMap.putIfAbsent(host, new ArrayList<>());
             hostOverUtilizationHistoryMap.get(host).add(new HostOverUtilizationHistoryEntry(host));
         }
-
-        hostEventInfoExecutionList.remove(hostEventInfo);
     }
 
     /**
@@ -565,9 +550,6 @@ public class DatacenterPro extends DatacenterSimple {
                 sourceVm,
                 targetHost);
 
-            if (!migrationQueue.containsValue(targetHost)) {
-                targetHost.addOnUpdateProcessingListener(this::migrationQueueCheckUp);
-            }
             migrationQueue.put(sourceVm, targetHost);
         }
 
@@ -576,16 +558,18 @@ public class DatacenterPro extends DatacenterSimple {
     }
 
     private void migrationQueueCheckUp(final HostEventInfo hostEventInfo) {
-        if (migrationQueue.isEmpty() || hostEventListenerRemoveQueue.contains(hostEventInfo)) {
+        if (migrationQueue.isEmpty() || hostEventListenerSuspendQueue.contains(hostEventInfo)) {
             return;
         }
 
-        hostEventInfoExecutionList.add(hostEventInfo);
-
         Host host = hostEventInfo.getHost();
 
+        if (!migrationQueue.containsValue(host)) {
+            return;
+        }
+
         //Removing the listener in order to avoid repetitive calls
-        hostEventListenerRemoveQueue.add(hostEventInfo);
+        hostEventListenerSuspendQueue.add(hostEventInfo);
 
         Map<Vm, Host> migrationQueueCopy = new HashMap<>(migrationQueue);
         List<Vm> removeQueueList = new ArrayList<>();
@@ -606,56 +590,20 @@ public class DatacenterPro extends DatacenterSimple {
                             sourceVm);
                         requestVmMigration(sourceVm, targetHost);
                         removeQueueList.add(sourceVm);
-                    } else if (targetHost.getVmsMigratingOut().isEmpty()) {
-                        removeQueueList.add(sourceVm);
-
-                        LOGGER.warn("{}: {}: {} could not allocate resources to {} and removed the VM from its migration queue.",
-                            getSimulation().clockStr(),
-                            getName(),
-                            targetHost,
-                            sourceVm);
                     }
                 }
             }
 
             removeQueueList.forEach(migrationQueueCopy::remove);
 
-            if (migrationQueue.isEmpty()) {
+            if (migrationQueueCopy.isEmpty()) {
                 break;
             }
         } while (!removeQueueList.isEmpty());
 
         migrationQueue = migrationQueueCopy;
 
-        int waitingVms = (int) migrationQueue.values().stream()
-            .filter(neededHost -> neededHost == host)
-            .count();
-
-        if (waitingVms != 0) {
-            hostEventListenerRemoveQueue.remove(hostEventInfo);
-        }
-
-        hostEventInfoExecutionList.remove(hostEventInfo);
-    }
-
-    public void hostEventListenerRemoveQueue() {
-        if (hostEventListenerRemoveQueue.isEmpty()) {
-            return;
-        }
-
-        List<HostEventInfo> removerEventListenerList = new ArrayList<>();
-
-        hostEventListenerRemoveQueue.forEach(hostEventInfo -> {
-            if (!hostEventInfoExecutionList.contains(hostEventInfo)) {
-                Host host = hostEventInfo.getHost();
-                host.removeOnUpdateProcessingListener((EventListener<HostUpdatesVmsProcessingEventInfo>) hostEventInfo.getListener());
-                removerEventListenerList.add(hostEventInfo);
-            }
-        });
-
-        if (!removerEventListenerList.isEmpty()) {
-            removerEventListenerList.forEach(hostEventInfoExecutionList::remove);
-        }
+        hostEventListenerSuspendQueue.remove(hostEventInfo);
     }
 
     /**
@@ -713,9 +661,13 @@ public class DatacenterPro extends DatacenterSimple {
         getPowerSupplyOverheadPowerAware().computePowerUtilizationForTimeSpan(getLastProcessTime());
     }
 
+    private void hostOnUpdateProcessingListener(final HostEventInfo hostEventInfo) {
+        migrationQueueCheckUp(hostEventInfo);
+        hostOverUtilizationCheckUp(hostEventInfo);
+    }
+
     private void simulationClockTickListener(final EventInfo eventInfo) {
         resourceController();
         computePower();
-        hostEventListenerRemoveQueue();
     }
 }

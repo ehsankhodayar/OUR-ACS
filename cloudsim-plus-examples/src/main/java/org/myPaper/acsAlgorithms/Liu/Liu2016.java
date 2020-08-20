@@ -67,7 +67,7 @@ public class Liu2016 extends LiuAbstract {
         List<Vm> totalVmList = new ArrayList<>(vmList);
         allowedHostList.forEach(host -> {
             //filters repeated VMs (VMs on overloaded and underutilized hosts)
-            List<Vm> hostVmList = host.getVmList().stream()
+            List<Vm> hostVmList = host.getVmList().parallelStream()
                 .filter(vm -> !vmList.contains(vm))
                 .collect(Collectors.toList());
 
@@ -206,7 +206,7 @@ public class Liu2016 extends LiuAbstract {
             //Selects a host based on the roulette wheel selection according to the probability distribution
 
             //Calculates the total amount of over utilization by all hosts
-            final double totalOverUtilization = hostOverUtilizationMap.values().stream().mapToDouble(value -> value).sum();
+            final double totalOverUtilization = hostOverUtilizationMap.values().parallelStream().mapToDouble(value -> value).sum();
 
             //Construction the probability map
             Map<Host, Double> hostProbabilityMap = new LinkedHashMap<>();
