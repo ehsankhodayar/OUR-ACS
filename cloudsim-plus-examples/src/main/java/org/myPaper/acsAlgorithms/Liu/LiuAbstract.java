@@ -224,11 +224,11 @@ public abstract class LiuAbstract implements Liu {
                 getHostTotalAvailableBandwidth(host, hostNewVmListMap.get(host)) - vm.getBw().getCapacity();
 
             double currentMipsUtilization =
-                (double) getHostMipsUtilization(host, hostNewVmListMap.get(host)) + vm.getTotalCpuMipsUtilization()
+                ((double) getHostMipsUtilization(host, hostNewVmListMap.get(host)) + vm.getTotalCpuMipsUtilization())
                     / host.getTotalMipsCapacity();
 
             double currentRamUtilization =
-                (double) getHostMemoryUtilization(host, hostNewVmListMap.get(host)) + vm.getRam().getAllocatedResource()
+                ((double) getHostMemoryUtilization(host, hostNewVmListMap.get(host)) + vm.getRam().getAllocatedResource())
                     / (double) host.getRam().getCapacity();
 
             if (availablePes >= 0 &&
