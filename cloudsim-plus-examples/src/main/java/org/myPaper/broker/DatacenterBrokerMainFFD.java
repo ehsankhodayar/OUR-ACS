@@ -7,6 +7,7 @@ import org.cloudbus.cloudsim.vms.Vm;
 import org.myPaper.acsAlgorithms.DatacenterSolutionEntry;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class DatacenterBrokerMainFFD extends DatacenterBrokerMain {
@@ -57,7 +58,8 @@ public class DatacenterBrokerMainFFD extends DatacenterBrokerMain {
         vmLoop:
         for (Vm vm : getVmWaitingList()) {
             for (Datacenter datacenter : getProviderDatacenters()) {
-                for (Host host : datacenter.getHostList()) {
+
+                for (Host host : getAllowedHostList(datacenter)) {
                     if (host.isSuitableForVm(vm)) {
                         vm.setHost(host);
                         host.createTemporaryVm(vm);
@@ -98,6 +100,7 @@ public class DatacenterBrokerMainFFD extends DatacenterBrokerMain {
                 vmLoop:
                 for (Vm vm : vmList) {
                     for (Datacenter federatedDc : federatedDcList) {
+
                         for (Host host : getAllowedHostList(federatedDc)) {
                             if (host.isSuitableForVm(vm)) {
                                 LOGGER.info("{}: {} has found a suitable resource for a new Vm creation request inside " +

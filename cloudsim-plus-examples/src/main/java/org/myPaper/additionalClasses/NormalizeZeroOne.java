@@ -13,6 +13,10 @@ public class NormalizeZeroOne {
      * @return the normalized number in the range of 0 and 1
      */
     public static double normalize(double nonNormalizeNumber, double max, double min) {
+        if (max - min == 0) {
+            throw new IllegalStateException("The sum of max and min could not be zero!");
+        }
+
         return (nonNormalizeNumber - min) / (max - min);
     }
 }

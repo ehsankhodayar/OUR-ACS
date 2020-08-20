@@ -307,6 +307,8 @@ public abstract class ParentClass {
                 }
             }
 
+            Collections.shuffle(newCloudletList);
+
             if (!newCloudletList.isEmpty()) {
                 submitWorkloadsForBrokers(newCloudletList);
             }

@@ -32,6 +32,7 @@ public class OurAcs {
     final double q0;//is a constant in range [0,1] and is used to control the exploitation and exploration behaviors of a ant
     final double PHEROMONE_DECAY;//the pheromone decay
     final double OVER_UTILIZATION_THRESHOLD;//the CPU over-utilization threshold
+    final double w;//The importance between energy and resource wastage
 
     /**
      * @see #getRequestedVmList()
@@ -52,6 +53,7 @@ public class OurAcs {
      * @param beta         is a predefined parameter that controls the relative importance of heuristic information (beta > 0)
      * @param q0           is a constant in range [0,1] and is used to control the exploitation and exploration behaviors of a ant
      * @param p            the pheromone decay
+     * @param w            the importance between energy and resource wastage in range 0-1 (higher w means a higher importance for energy)
      * @param ovuThreshold the CPU over-utilization threshold
      */
     public OurAcs(final int g,
@@ -59,12 +61,14 @@ public class OurAcs {
                   final int beta,
                   final double q0,
                   final double p,
+                  final double w,
                   final double ovuThreshold) {
         G = g;
         A = a;
         BETA = beta;
         this.q0 = q0;
         PHEROMONE_DECAY = p;
+        this.w = w;
         OVER_UTILIZATION_THRESHOLD = ovuThreshold;
 
         requestedVmList = new ArrayList<>();
@@ -119,6 +123,8 @@ public class OurAcs {
             externalArchive = kneePointSelectionPolicy.getNonDominatedSortation(externalArchive);
 
             //Choose the generation best solution according to the minimum power consumption policy
+            /*MinimumPowerSelectionPolicy minimumPowerSelectionPolicy = new MinimumPowerSelectionPolicy(getRequestedVmList());
+            Map<Vm, Host> test = minimumPowerSelectionPolicy.getSolutionWithMinimumPowerConsumption(externalArchive);*/
             lastGenerationBestSolution = kneePointSelectionPolicy.getKneePoint(externalArchive, false);
             performGlobalPheromoneUpdating(lastGenerationBestSolution, pheromoneInformationMap);
         }
@@ -156,7 +162,7 @@ public class OurAcs {
                     continue;
                 }
 
-                suitableHostList.forEach(host -> hostTemporaryVmListMap.put(host, new ArrayList<>()));
+                suitableHostList.forEach(host -> hostTemporaryVmListMap.putIfAbsent(host, new ArrayList<>()));
 
                 Host targetHost =
                     selectHostForVmAccordingToConstructionRule(vm, hostTemporaryVmListMap, suitableHostList, localVmPheromoneInformationMap);
@@ -440,8 +446,7 @@ public class OurAcs {
                 (int) (getHostTotalAvailableBandwidth(host, hostNewVmListMap.get(host)) - vm.getBw().getCapacity());
 
             double currentMipsUtilization =
-                (double) getHostMipsUtilization(host, hostNewVmListMap.get(host)) + vm.getTotalCpuMipsUtilization()
-                    / host.getTotalMipsCapacity();
+                ((double) getHostMipsUtilization(host, hostNewVmListMap.get(host)) + vm.getTotalCpuMipsUtilization()) / host.getTotalMipsCapacity();
 
             if (availablePes >= 0 &&
                 availableMips >= 0 &&
@@ -517,11 +522,13 @@ public class OurAcs {
         }
 
         final double hostFutureCpuUtilization = getHostMipsUtilization(host, hostTemporaryVmListCopy) / host.getTotalMipsCapacity();
-        final double powerConsumption = host.getPowerModel().getPower(hostFutureCpuUtilization);
+        final double currentPowerConsumption = host.getPowerModel().getPower(host.getCpuPercentUtilization());
+        final double newPowerConsumption = host.getPowerModel().getPower(hostFutureCpuUtilization);
+        final double increaseInPowerConsumption = newPowerConsumption - currentPowerConsumption;
         double normalizedPowerConsumption =
-            NormalizeZeroOne.normalize(powerConsumption, host.getPowerModel().getMaxPower(), host.getPowerModel().getPower(0));
+            NormalizeZeroOne.normalize(increaseInPowerConsumption, host.getPowerModel().getMaxPower() - currentPowerConsumption, 0);
 
-        return  (1 / (cpuWastage + memoryWastage + 1)) + (1 / (normalizedPowerConsumption + 1));
+        return (w * (1 / (normalizedPowerConsumption + 1))) + ((1 - w) * (1 / (cpuWastage + memoryWastage + 1)));
     }
 
     /**
@@ -723,7 +730,7 @@ public class OurAcs {
             Host host = vmHostEntry.getValue();
 
             double resourceWastage = getSolutionTotalResourceWastageNormalize(solution);
-            double solutionPowerConsumptionNormalized = getNormalizedSolutionTotalPowerConsumption(solution);
+            double solutionPowerConsumptionNormalized = getSolutionTotalIncreaseInPowerConsumptionNormalized(solution);
             double currentPheromoneValue = pheromoneInformationMap.get(vm).getPheromoneValue(host);
             double reinforcementValue = (1 / (resourceWastage + 1)) + (1 / (solutionPowerConsumptionNormalized + 1));
             double newPheromoneValue = (1 - PHEROMONE_DECAY) * currentPheromoneValue + PHEROMONE_DECAY * reinforcementValue;
@@ -732,17 +739,16 @@ public class OurAcs {
     }
 
     /**
-     * Gets the total power consumption of the given solution in Watt-S. It consists the total power consumption of IT
-     * infrastructures by the given hosts and the datacenter's overhead power consumption.
+     * Gets the total increase in power consumption of the given solution in Watt-S.
      *
      * @param solution the solution
-     * @return the total power consumption in Watt-S (IT infrastructures' power consumption + datacenter's overhead power consumption)
+     * @return the total increase power consumption in Watt-S
      */
-    public double getNormalizedSolutionTotalPowerConsumption(final Map<Vm, Host> solution) {
+    public double getSolutionTotalIncreaseInPowerConsumptionNormalized(final Map<Vm, Host> solution) {
         Map<Host, List<Vm>> hostNewVmListMap = convertSolutionMapToHostTemporaryVmListMap(solution);
 
         double currentITPowerConsumption = hostNewVmListMap.keySet().parallelStream()
-            .mapToDouble(host -> host.getPowerModel().getPower())
+            .mapToDouble(host -> host.isActive() ? host.getPowerModel().getPower() : 10)
             .sum();
 
         double newITPowerConsumption = hostNewVmListMap.keySet().parallelStream()
@@ -752,25 +758,14 @@ public class OurAcs {
 
         double extraITPowerConsumption = newITPowerConsumption - currentITPowerConsumption;
 
-        double overheadPowerConsumption = extraITPowerConsumption * (datacenter.getDatacenterDynamicPUE(extraITPowerConsumption) - 1);
+        double minimumPowerIncrease = 0;
 
-        double totalPowerConsumption = newITPowerConsumption + overheadPowerConsumption;
-
-        double minimumPowerConsumption =
-            hostNewVmListMap.keySet().stream()
-                .mapToDouble(host -> host.getPowerModel().getPower(0))
-                .sum();
-
-        double maximumPowerConsumption =
-            hostNewVmListMap.keySet().stream()
+        double maximumPowerIncrease =
+            hostNewVmListMap.keySet().parallelStream()
                 .mapToDouble(host -> host.getPowerModel().getMaxPower())
-                .sum();
+                .sum() - currentITPowerConsumption;
 
-        //Compute overhead
-        double extraMaximumPower = (maximumPowerConsumption - currentITPowerConsumption);
-        maximumPowerConsumption += ((extraMaximumPower) * datacenter.getDatacenterDynamicPUE(extraMaximumPower) - 1);
-
-        return NormalizeZeroOne.normalize(totalPowerConsumption, maximumPowerConsumption, minimumPowerConsumption);
+        return NormalizeZeroOne.normalize(extraITPowerConsumption, maximumPowerIncrease, minimumPowerIncrease);
     }
 
     BiFunction<Double, Integer, Double> roundDouble = (value, places) -> {

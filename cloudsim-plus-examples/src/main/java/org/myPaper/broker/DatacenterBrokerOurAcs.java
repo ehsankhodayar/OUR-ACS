@@ -40,7 +40,7 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
             getSimulation().clockStr(),
             getName());
 
-        List<DatacenterSolutionEntry> datacenterSolutionEntryList = getProviderDatacenters().stream()
+        List<DatacenterSolutionEntry> datacenterSolutionEntryList = getProviderDatacenters().parallelStream()
             .filter(datacenter -> !getAllowedHostList(datacenter).isEmpty())
             .map(datacenter -> new DatacenterSolutionEntry(datacenter, getVmWaitingList(), getAllowedHostList(datacenter)))
             .filter(datacenterSolutionEntry -> !datacenterSolutionEntry.getSolution().isEmpty())
@@ -48,7 +48,7 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
 
         if (datacenterSolutionEntryList.isEmpty()) {
             LOGGER.warn("{}: {} could not find any suitable resources for allocating to the new Vm creation requests inside the datacenters " +
-                "of the current cloud provider!",
+                    "of the current cloud provider!",
                 getSimulation().clockStr(),
                 getName());
 
@@ -56,8 +56,9 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
 
             if (federatedDcList.isEmpty()) {
                 failVms(getVmWaitingList());
+
                 return false;
-            }else {
+            } else {
                 LOGGER.info("{}: {} is trying to federate the new Vm creation requests.",
                     getSimulation().clockStr(),
                     getName());
@@ -75,28 +76,31 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
                         getName());
 
                     failVms(getVmWaitingList());
+
                     return false;
-                }else {
+                } else {
                     LOGGER.info("{}: {} has found some suitable resources for allocating to the new Vm creation requests inside " +
                             "the federated environment.",
                         getSimulation().clockStr(),
                         getName());
 
-//                    Map<Vm, Host> solution = selectKneePoint(datacenterSolutionEntryList);
-                    Map<Vm, Host> solution = selectMinimumEnergyConsumption(datacenterSolutionEntryList);
+                    Map<Vm, Host> solution = selectKneePoint(datacenterSolutionEntryList, getVmWaitingList());
+//                    Map<Vm, Host> solution = selectMinimumEnergyConsumption(datacenterSolutionEntryList, getVmWaitingList());
                     performSolution(solution, isFallbackDatacenter);
+
                     return true;
                 }
             }
         } else {
             LOGGER.info("{}: {} has found some suitable resources for allocating to the new Vm creation requests inside the datacenters of the " +
-                "current cloud provider.",
+                    "current cloud provider.",
                 getSimulation().clockStr(),
                 getName());
 
-//            Map<Vm, Host> solution = selectKneePoint(datacenterSolutionEntryList);
-            Map<Vm, Host> solution = selectMinimumEnergyConsumption(datacenterSolutionEntryList);
+            Map<Vm, Host> solution = selectKneePoint(datacenterSolutionEntryList, getVmWaitingList());
+//            Map<Vm, Host> solution = selectMinimumEnergyConsumption(datacenterSolutionEntryList, getVmWaitingList());
             performSolution(solution, isFallbackDatacenter);
+
             return true;
         }
     }
@@ -112,14 +116,14 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
                 getName());
 
             return solutionEntryList;
-        }else if (isExternalDatacenter(sourceDatacenter)){
+        } else if (isExternalDatacenter(sourceDatacenter)) {
             LOGGER.warn("{}: The source {} is not part of {} domain!",
                 getSimulation().clockStr(),
                 sourceDatacenter,
                 getName());
 
             return solutionEntryList;
-        }else {
+        } else {
             List<Datacenter> availableDatacenterList = getDatacenterList().stream()
                 .filter(datacenter -> datacenter != sourceDatacenter)
                 .filter(datacenter -> selfDatacenters || isExternalDatacenter(datacenter))
@@ -141,13 +145,13 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
                         getSimulation().clockStr(),
                         getName(),
                         sourceDatacenter);
-                }else {
+                } else {
                     LOGGER.warn("{}: {} could not produce any migration map for the applicant {} in the federated environment!",
                         getSimulation().clockStr(),
                         getName(),
                         sourceDatacenter);
                 }
-            }else {
+            } else {
                 LOGGER.warn("{}: {} could not find any available datacenter in the federated environment!",
                     getSimulation().clockStr(),
                     getName());
@@ -173,14 +177,14 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
         }
     }
 
-    private Map<Vm, Host> selectKneePoint(final List<DatacenterSolutionEntry> datacenterSolutionEntryList) {
-        KneePointSelectionPolicy kneePointSelectionPolicy = new KneePointSelectionPolicy(getVmWaitingList());
+    private Map<Vm, Host> selectKneePoint(final List<DatacenterSolutionEntry> datacenterSolutionEntryList, List<Vm> vmList) {
+        KneePointSelectionPolicy kneePointSelectionPolicy = new KneePointSelectionPolicy(vmList);
 
         return kneePointSelectionPolicy.getKneePoint(datacenterSolutionEntryList, true);
     }
 
-    private Map<Vm, Host> selectMinimumEnergyConsumption(final List<DatacenterSolutionEntry> datacenterSolutionEntryList) {
-        MinimumPowerSelectionPolicy powerSelectionPolicy = new MinimumPowerSelectionPolicy(getVmWaitingList());
+    private Map<Vm, Host> selectMinimumEnergyConsumption(final List<DatacenterSolutionEntry> datacenterSolutionEntryList, List<Vm> vmList) {
+        MinimumPowerSelectionPolicy powerSelectionPolicy = new MinimumPowerSelectionPolicy(vmList);
 
         return powerSelectionPolicy.getSolutionWithMinimumPowerConsumption(datacenterSolutionEntryList);
     }

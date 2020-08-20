@@ -7,12 +7,9 @@ import org.cloudbus.cloudsim.vms.Vm;
 import org.myPaper.acsAlgorithms.DatacenterSolutionEntry;
 import org.myPaper.additionalClasses.SortMap;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-public class DatacenterBrokerMainKhosravi2017 extends DatacenterBrokerMain {
+public class DatacenterBrokerKhosravi2017 extends DatacenterBrokerMain {
     private final Map<Datacenter, List<PowerModelEntry>> datacenterPowerModelListMap;
 
     /**
@@ -23,7 +20,7 @@ public class DatacenterBrokerMainKhosravi2017 extends DatacenterBrokerMain {
      * @param simulation the CloudSim instance that represents the simulation the Entity is related to
      * @param name       the DatacenterBroker name
      */
-    public DatacenterBrokerMainKhosravi2017(CloudSim simulation, String name) {
+    public DatacenterBrokerKhosravi2017(CloudSim simulation, String name) {
         this(simulation, name, new ArrayList<>());
     }
 
@@ -36,7 +33,7 @@ public class DatacenterBrokerMainKhosravi2017 extends DatacenterBrokerMain {
      * @param name       the DatacenterBroker name
      * @param datacenterList list of connected datacenters to this broker
      */
-    public DatacenterBrokerMainKhosravi2017(CloudSim simulation, String name, List<Datacenter> datacenterList) {
+    public DatacenterBrokerKhosravi2017(CloudSim simulation, String name, List<Datacenter> datacenterList) {
         super(simulation, name, datacenterList);
         datacenterPowerModelListMap = new HashMap<>();
     }
@@ -104,7 +101,6 @@ public class DatacenterBrokerMainKhosravi2017 extends DatacenterBrokerMain {
             return true;
         }
 
-        Map<Vm, Datacenter> solution = new HashMap<>();
         List<Vm> failedVmList = new ArrayList<>();
 
         for (Vm vm : getVmWaitingList()) {
@@ -144,14 +140,18 @@ public class DatacenterBrokerMainKhosravi2017 extends DatacenterBrokerMain {
         List<Datacenter> sortedDatacenterList = new ArrayList<>(SortMap.sortByValue(aggregatedDatacenterListMap, true).keySet());
 
         for (Datacenter datacenter : sortedDatacenterList) {
-            Map<Host, Double> aggregatedHostListMap = new HashMap<>();
-            for (Host host : getAllowedHostList(datacenter)) {
+            Map<Host, Double> aggregatedHostListMap = new LinkedHashMap<>();
+
+            List<Host> allowedHostList = new ArrayList<>(getAllowedHostList(datacenter));
+            Collections.shuffle(allowedHostList);
+
+            for (Host host : allowedHostList) {
                 if (host.isSuitableForVm(vm)) {
                     final double currentPowerConsumption = host.getPowerModel().getPower();
                     final double futureCpuUtilization =
                         ((double) vm.getNumberOfPes() / (double) host.getNumberOfPes()) + host.getCpuPercentUtilization();
                     final double futurePowerConsumption =
-                        host.getPowerModel().getPower(futureCpuUtilization <=1 ? futureCpuUtilization : 1);
+                        host.getPowerModel().getPower(futureCpuUtilization);
                     final double addedPowerConsumption = futurePowerConsumption - currentPowerConsumption;
                     aggregatedHostListMap.put(host, addedPowerConsumption);
                 }

@@ -1,16 +1,12 @@
 package org.myPaper;
 
 import org.cloudbus.cloudsim.allocationpolicies.migration.VmAllocationPolicyMigration;
-import org.cloudbus.cloudsim.cloudlets.Cloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
-import org.cloudsimplus.builders.tables.CloudletsTableBuilder;
 import org.myPaper.acsAlgorithms.OurAcsAlgorithm.OurAcs;
 import org.myPaper.broker.DatacenterBrokerOurAcs;
 import org.myPaper.datacenter.vmAllocationPolicies.VmAllocationPolicyMigrationStaticThresholdOurAcs;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 public class MainClass_OurAcs extends ParentClass {
     public static void main(String[] args) {
@@ -97,7 +93,7 @@ public class MainClass_OurAcs extends ParentClass {
      * @return a new VM allocation migration policy
      */
     private VmAllocationPolicyMigration createNewVmAllocationPolicy() {
-        OurAcs ourAcs = new OurAcs(5, 5, 2, 0.7, 0.1, OVERUTILIZATION_THRESHOLD);
+        OurAcs ourAcs = new OurAcs(10, 5, 2, 0.85, 0.3, 0.6, OVERUTILIZATION_THRESHOLD);
 
         VmAllocationPolicyMigrationStaticThresholdOurAcs vmAllocationPolicyMigration =
             new VmAllocationPolicyMigrationStaticThresholdOurAcs(ourAcs);

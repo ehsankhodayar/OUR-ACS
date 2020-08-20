@@ -26,7 +26,6 @@ import static java.util.Objects.requireNonNull;
 
 public class DatacenterPro extends DatacenterSimple {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatacenterPro.class.getSimpleName());
-    private static final double VM_MIGRATION_PERFORMANCE_DEGRADATION_PERCENTAGE = 0.1;
 
     /**
      * @see #setCloudCoordinator(CloudCoordinator)
@@ -67,6 +66,8 @@ public class DatacenterPro extends DatacenterSimple {
      */
     private Map<Vm, Host> migrationQueue;
 
+    private final List<HostEventInfo> hostEventInfoExecutionList;
+
     private final List<HostEventInfo> hostEventListenerRemoveQueue;
 
     /**
@@ -88,6 +89,7 @@ public class DatacenterPro extends DatacenterSimple {
         carbonRateAndTaxModel = null;
         hostOverUtilizationHistoryMap = new HashMap<>();
         migrationQueue = new HashMap<>();
+        hostEventInfoExecutionList = new ArrayList<>();
         hostEventListenerRemoveQueue = new ArrayList<>();
         vmNumberOfVmMigrationsMap = new HashMap<>();
 
@@ -134,6 +136,8 @@ public class DatacenterPro extends DatacenterSimple {
             return;
         }
 
+        hostEventInfoExecutionList.add(hostEventInfo);
+
         Host host = hostEventInfo.getHost();
 
         if (!hostOverUtilizedStateHistory) {
@@ -145,6 +149,8 @@ public class DatacenterPro extends DatacenterSimple {
             hostOverUtilizationHistoryMap.putIfAbsent(host, new ArrayList<>());
             hostOverUtilizationHistoryMap.get(host).add(new HostOverUtilizationHistoryEntry(host));
         }
+
+        hostEventInfoExecutionList.remove(hostEventInfo);
     }
 
     /**
@@ -574,6 +580,8 @@ public class DatacenterPro extends DatacenterSimple {
             return;
         }
 
+        hostEventInfoExecutionList.add(hostEventInfo);
+
         Host host = hostEventInfo.getHost();
 
         //Removing the listener in order to avoid repetitive calls
@@ -626,6 +634,8 @@ public class DatacenterPro extends DatacenterSimple {
         if (waitingVms != 0) {
             hostEventListenerRemoveQueue.remove(hostEventInfo);
         }
+
+        hostEventInfoExecutionList.remove(hostEventInfo);
     }
 
     public void hostEventListenerRemoveQueue() {
@@ -633,10 +643,19 @@ public class DatacenterPro extends DatacenterSimple {
             return;
         }
 
+        List<HostEventInfo> removerEventListenerList = new ArrayList<>();
+
         hostEventListenerRemoveQueue.forEach(hostEventInfo -> {
-            Host host = hostEventInfo.getHost();
-            host.removeOnUpdateProcessingListener((EventListener<HostUpdatesVmsProcessingEventInfo>) hostEventInfo.getListener());
+            if (!hostEventInfoExecutionList.contains(hostEventInfo)) {
+                Host host = hostEventInfo.getHost();
+                host.removeOnUpdateProcessingListener((EventListener<HostUpdatesVmsProcessingEventInfo>) hostEventInfo.getListener());
+                removerEventListenerList.add(hostEventInfo);
+            }
         });
+
+        if (!removerEventListenerList.isEmpty()) {
+            removerEventListenerList.forEach(hostEventInfoExecutionList::remove);
+        }
     }
 
     /**
