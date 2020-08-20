@@ -119,8 +119,8 @@ public class ExperimentalResults {
     private void generateDatacentersResults() {
         final File datacenterDir = createNewDirectory("datacenters-experimental-results");
         List<String> contentList = new ArrayList<>();
-        contentList.add("Provider,DC ID,DC Name,Broker ID,Broker Name,Number of Hosts,Average Hosts Uptime,Number of Created Vms," +
-            "Number of Live Vm Migrations,PDM,SLATAH,SLAV,ESV,Average PUE,Total Energy Consumption (KWh),Total Energy Cost ($)," +
+        contentList.add("Provider,DC ID,DC Name,Broker ID,Broker Name,Number of Hosts,Average Hosts Uptime,Average CPU Utilization," +
+            "Number of Created Vms,Number of Live Vm Migrations,PDM,SLATAH,SLAV,ESV,Average PUE,Total Energy Consumption (KWh),Total Energy Cost ($)," +
             "Total Carbon Emission (Kg),Total Carbon Tax ($),Total Cost ($)");
 
         int provider = 1;
@@ -139,8 +139,8 @@ public class ExperimentalResults {
                 double esv = totalEnergyConsumption * slav;
 
                 contentList.add(provider + "," + datacenter.getId() + "," + datacenter.getName() + "," + broker.getId() + "," + broker.getName() + "," +
-                    datacenter.getHostList().size() + "," + averageHostsUptime + "," + datacenterPro.getCreatedVmList().size() + "," +
-                    datacenterPro.getMaximumNumberOfLiveVmMigrations() + "," + pdm + "," +
+                    datacenter.getHostList().size() + "," + averageHostsUptime + "," + datacenterPro.getHostsAverageCpuUtilization() + "," +
+                    datacenterPro.getCreatedVmList().size() + "," + datacenterPro.getMaximumNumberOfLiveVmMigrations() + "," + pdm + "," +
                     slatah + "," + slav + "," + esv + "," + datacenterPro.getPowerSupplyOverheadPowerAware().getAveragePueDuringSimulation() + "," +
                     totalEnergyConsumption + "," + totalEnergyCost + "," + totalCarbonEmission + "," + totalCarbonTax + "," +
                     totalCost);
@@ -159,13 +159,14 @@ public class ExperimentalResults {
 
     private void generateDatacentersSummary(final String datacenterDir) {
         List<String> contentList = new ArrayList<>();
-        contentList.add("Number of Hosts,Average Hosts Uptime,Number of Created Vms," +
+        contentList.add("Number of Hosts,Average Hosts Uptime,Average CPU Utilization,Number of Created Vms," +
             "Number of Live Vm Migrations,PDM,SLATAH,SLAV,ESV,Average PUE,Total Energy Consumption (KWh),Total Energy Cost ($)," +
             "Total Carbon Emission (Kg),Total Carbon Tax ($),Total Cost ($)");
 
         int numberOfDcs = 0;
         int totalNumberOfHosts = 0;
         int totalAverageHostsUptime = 0;
+        double totalAverageCpuUtilization = 0;
         int totalNumberOfCreatedVms = 0;
         int totalNumberOfLiveVmMigrations = 0;
         double averagePDM = 0;
@@ -186,6 +187,7 @@ public class ExperimentalResults {
                 numberOfDcs++;
                 totalNumberOfHosts += datacenter.getHostList().size();
                 totalAverageHostsUptime += datacenterPro.getHostsTotalUptime();
+                totalAverageCpuUtilization += datacenterPro.getHostsAverageCpuUtilization();
                 totalNumberOfCreatedVms += datacenterPro.getCreatedVmList().size();
                 totalNumberOfLiveVmMigrations += datacenterPro.getMaximumNumberOfLiveVmMigrations();
 
@@ -209,13 +211,14 @@ public class ExperimentalResults {
         }
 
         totalAverageHostsUptime = totalAverageHostsUptime / totalNumberOfHosts;
+        totalAverageCpuUtilization = totalAverageCpuUtilization / (double) numberOfDcs;
         averagePDM = averagePDM / numberOfDcs;
         averageSLATAH = averageSLATAH / numberOfDcs;
         averageSLAV = averageSLAV / numberOfDcs;
         averageESV = averageESV / numberOfDcs;
         averagePUE = averagePUE / numberOfDcs;
 
-        contentList.add(totalNumberOfHosts + "," + totalAverageHostsUptime + "," +
+        contentList.add(totalNumberOfHosts + "," + totalAverageHostsUptime + "," + totalAverageCpuUtilization + "," +
             totalNumberOfCreatedVms + "," + totalNumberOfLiveVmMigrations + "," + averagePDM + "," +
             averageSLATAH + "," + averageSLAV + "," + averageESV + "," + averagePUE + "," + totalEnergyConsumption + "," + totalEnergyCost + "," +
             totalCarbonEmission + "," + totalCarbonTax + "," + totalCost);

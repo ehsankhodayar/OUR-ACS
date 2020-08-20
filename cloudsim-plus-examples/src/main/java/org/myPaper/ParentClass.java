@@ -176,6 +176,7 @@ public abstract class ParentClass {
         datacenterPro.setHostSearchRetryDelay(OVERLOAD_AND_UNDERLOAD_MONITORING_INTERVAL);
         datacenterPro.setPowerSupply(new DatacenterPowerSupplyOverheadPowerAware(datacenterPro));
         datacenterPro.enableHostOverUtilizedHistoryRecorder(true);
+        datacenterPro.enableSaveHostAverageCpuUtilization(true);
         if (!LIVE_VM_MIGRATION) {
             datacenterPro.disableMigrations();
         }

@@ -8,9 +8,7 @@ import org.cloudbus.cloudsim.datacenters.DatacenterSimple;
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.cloudsimplus.listeners.EventInfo;
-import org.cloudsimplus.listeners.EventListener;
 import org.cloudsimplus.listeners.HostEventInfo;
-import org.cloudsimplus.listeners.HostUpdatesVmsProcessingEventInfo;
 import org.myPaper.coordinator.CloudCoordinator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +72,16 @@ public class DatacenterPro extends DatacenterSimple {
      */
     private final Map<Vm, Integer> vmNumberOfVmMigrationsMap;
 
+    /**
+     * @see #updateHostCpuUtilizationHistory(HostEventInfo)
+     */
+    private final Map<Host, HostCpuUtilizationHistorySimpleEntry> hostCpuUtilizationHistorySimpleEntryMap;
+
+    /**
+     * @see #enableSaveHostAverageCpuUtilization(boolean)
+     */
+    private boolean saveHostAverageCpuUtilization;
+
     public DatacenterPro(Simulation simulation, List<? extends Host> hostList) {
         this(simulation, hostList, new VmAllocationPolicySimple());
     }
@@ -89,6 +97,8 @@ public class DatacenterPro extends DatacenterSimple {
         migrationQueue = new HashMap<>();
         hostEventListenerSuspendQueue = new ArrayList<>();
         vmNumberOfVmMigrationsMap = new HashMap<>();
+        hostCpuUtilizationHistorySimpleEntryMap = new HashMap<>();
+        saveHostAverageCpuUtilization = false;
 
         getSimulation().addOnClockTickListener(this::simulationClockTickListener);
         getHostList().parallelStream().forEach(host -> host.addOnUpdateProcessingListener(this::hostOnUpdateProcessingListener));
@@ -110,6 +120,22 @@ public class DatacenterPro extends DatacenterSimple {
      */
     public CloudCoordinator getCloudCoordinator() {
         return cloudCoordinator;
+    }
+
+    /**
+     * Activates the host on update processing listener to save the average CPU utilization of datacenter's
+     * hosts. Note that this option uses just a little amount of memory.
+     *
+     * @param activate set if it is needed, false otherwise
+     */
+    public void enableSaveHostAverageCpuUtilization(final boolean activate) {
+        saveHostAverageCpuUtilization = activate;
+
+        if (activate) {
+            getHostList().forEach(host -> hostCpuUtilizationHistorySimpleEntryMap.put(host, new HostCpuUtilizationHistorySimpleEntry(host)));
+        }else {
+            hostCpuUtilizationHistorySimpleEntryMap.clear();
+        }
     }
 
     /**
@@ -661,9 +687,61 @@ public class DatacenterPro extends DatacenterSimple {
         getPowerSupplyOverheadPowerAware().computePowerUtilizationForTimeSpan(getLastProcessTime());
     }
 
+    /**
+     * Updates the host CPU utilization history. Note that for turning on this option the {@link #saveHostAverageCpuUtilization}
+     * must be activated by calling {@link #enableSaveHostAverageCpuUtilization(boolean)} method.
+     *
+     * @param hostEventInfo the host event info
+     */
+    private void updateHostCpuUtilizationHistory(final HostEventInfo hostEventInfo) {
+        if (!saveHostAverageCpuUtilization) {
+            return;
+        }
+
+        final Host host = hostEventInfo.getHost();
+
+        hostCpuUtilizationHistorySimpleEntryMap.get(host).addNewCpuUtilization(host.getCpuPercentUtilization());
+
+    }
+
+    /**
+     * Gets the average CPU utilization of datacenter's hosts up to now in range 0-1. Note that to use this option
+     * the {@link #saveHostAverageCpuUtilization} must be activated by calling {@link #enableSaveHostAverageCpuUtilization(boolean)}
+     * method.
+     *
+     * @return the average CPU utilization of datacenter's hosts up to now in range 0-1
+     */
+    public double getHostsAverageCpuUtilization() {
+        if (!saveHostAverageCpuUtilization) {
+            return 0;
+        }
+
+        return hostCpuUtilizationHistorySimpleEntryMap.values().parallelStream()
+            .mapToDouble(HostCpuUtilizationHistorySimpleEntry::getAverageCpuUtilization)
+            .average()
+            .orElse(0);
+    }
+
+    /**
+     * Gets the average CPU utilization of the given host up to now in range 0-1. Note that to use this option
+     * the {@link #saveHostAverageCpuUtilization} must be activated by calling {@link #enableSaveHostAverageCpuUtilization(boolean)}
+     * method.
+     *
+     * @param host the host
+     * @return the host's averae CPU utilization in range 0-1
+     */
+    public double getHostAverageCpuUtilization(final Host host) {
+        if (!saveHostAverageCpuUtilization) {
+            return 0;
+        }
+
+        return hostCpuUtilizationHistorySimpleEntryMap.get(host).getAverageCpuUtilization();
+    }
+
     private void hostOnUpdateProcessingListener(final HostEventInfo hostEventInfo) {
         migrationQueueCheckUp(hostEventInfo);
         hostOverUtilizationCheckUp(hostEventInfo);
+        updateHostCpuUtilizationHistory(hostEventInfo);
     }
 
     private void simulationClockTickListener(final EventInfo eventInfo) {
