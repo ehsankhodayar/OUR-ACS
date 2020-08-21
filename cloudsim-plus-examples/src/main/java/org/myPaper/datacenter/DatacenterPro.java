@@ -62,7 +62,7 @@ public class DatacenterPro extends DatacenterSimple {
     /**
      * @see #migrationQueueCheckUp(HostEventInfo)
      */
-    private Map<Host, List<Vm>> hostVmMigrationQueueMap;
+    private final Map<Host, List<Vm>> hostVmMigrationQueueMap;
 
     private final List<HostEventInfo> hostEventListenerSuspendQueue;
 

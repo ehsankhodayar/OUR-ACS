@@ -1,4 +1,4 @@
-package org.myPaper;
+package org.myPaper.programs;
 
 import org.cloudbus.cloudsim.cloudlets.Cloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
@@ -17,6 +17,8 @@ import org.myPaper.host.instances.*;
 import org.myPaper.vm.instances.*;
 import org.myPaper.datacenter.vmAllocationPolicies.VmAllocationPolicyFirstFitCustomized;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.function.BiFunction;
@@ -24,19 +26,19 @@ import java.util.function.BiFunction;
 public abstract class ParentClass {
     //SimulatorConfigurations
     protected static final int SIMULATION_TIME = 43200; //5 days
-    protected static CloudSim simulation;
     protected static final LocalTime SIMULATION_START_TIME = LocalTime.now();
-    protected final String OUTPUT_DIRECTORY = "C:\\Users\\Administrator\\Desktop\\simulation-logs";
+    protected static CloudSim simulation;
+    protected final String OUTPUT_DIRECTORY;
 
     //Broker Configurations
-    protected static final boolean CLOUD_FEDERATION = false;
+    protected final boolean CLOUD_FEDERATION;
     protected static DatacenterBrokerMain broker1;
     protected static DatacenterBrokerMain broker2;
     protected static DatacenterBrokerMain broker3;
 
     //Datacenter Configurations
     protected final double SCHEDULING_INTERVAL = 100; //Every 100 seconds.
-    protected final boolean LIVE_VM_MIGRATION = true;
+    protected final boolean LIVE_VM_MIGRATION;
     protected final double OVERLOAD_AND_UNDERLOAD_MONITORING_INTERVAL = 300; //Every 10 minutes.
     protected final double UNDERUTILIZATION_THRESHOLD = 0.3;
     protected final double OVERUTILIZATION_THRESHOLD = 0.9;
@@ -110,6 +112,16 @@ public abstract class ParentClass {
     protected final int UTILIZATION_UPDATE_SCHEDULING_INTERVAL = 300; //5 minutes
     protected final int CLOUDLET_LENGTH = 35_000_000; //Million Instructions (MI)
     protected final int MAXIMUM_NUMBER_OF_CLOUDLETS = 10000; //cloudlets will be submitted dynamically to the broker during the simulation time
+
+    public ParentClass(final String directory, final boolean cloudFederation, final boolean liveVmMigration) {
+        if (directory == null || !Files.exists(Paths.get(directory))) {
+            throw new IllegalStateException("The given directory is not allowed!");
+        }
+
+        OUTPUT_DIRECTORY = directory;
+        CLOUD_FEDERATION = cloudFederation;
+        LIVE_VM_MIGRATION = liveVmMigration;
+    }
 
     /**
      * Creates a Datacenter and its Hosts.

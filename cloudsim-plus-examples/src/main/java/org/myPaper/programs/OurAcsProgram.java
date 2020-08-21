@@ -1,24 +1,21 @@
-package org.myPaper;
+package org.myPaper.programs;
 
 import org.cloudbus.cloudsim.allocationpolicies.migration.VmAllocationPolicyMigration;
-import org.cloudbus.cloudsim.cloudlets.Cloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
-import org.cloudsimplus.builders.tables.CloudletsTableBuilder;
-import org.myPaper.acsAlgorithms.Liu.Liu;
-import org.myPaper.acsAlgorithms.Liu.Liu2017;
-import org.myPaper.broker.DatacenterBrokerLiu;
-import org.myPaper.datacenter.vmAllocationPolicies.VmAllocationPolicyMigrationStaticThresholdLiu;
+import org.myPaper.acsAlgorithms.OurAcsAlgorithm.OurAcs;
+import org.myPaper.broker.DatacenterBrokerOurAcs;
+import org.myPaper.datacenter.vmAllocationPolicies.VmAllocationPolicyMigrationStaticThresholdOurAcs;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
-public class MainClass_Liu2017 extends ParentClass {
-    public static void main(String[] args) {
-        new MainClass_Liu2017();
+public class OurAcsProgram extends ParentClass {
+    public OurAcsProgram(final String directory, final boolean cloudFederation, final boolean liveVmMigration) {
+        super(directory, cloudFederation, liveVmMigration);
+
+        runProgram();
     }
 
-    private MainClass_Liu2017() {
+    private void runProgram() {
         simulation = new CloudSim();
 
         //Provider1 Dataceneters
@@ -61,13 +58,13 @@ public class MainClass_Liu2017 extends ParentClass {
         datacenter9.setVmAllocationPolicy(createNewVmAllocationPolicy());
 
         //Brokers of Providers
-        broker1 = new DatacenterBrokerLiu(simulation, "Cloud-Broker-Provider1", Arrays.asList(datacenter1, datacenter2, datacenter3, datacenter4));
+        broker1 = new DatacenterBrokerOurAcs(simulation, "Cloud-Broker-Provider1", Arrays.asList(datacenter1, datacenter2, datacenter3, datacenter4));
         broker1.setVmDestructionDelay(VM_DESTRUCTION_DELAY);
         broker1.setRetryFailedVms(false);
-        broker2 = new DatacenterBrokerLiu(simulation, "Cloud-Broker-Provider2", Arrays.asList(datacenter5, datacenter6, datacenter7));
+        broker2 = new DatacenterBrokerOurAcs(simulation, "Cloud-Broker-Provider2", Arrays.asList(datacenter5, datacenter6, datacenter7));
         broker2.setVmDestructionDelay(VM_DESTRUCTION_DELAY);
         broker2.setRetryFailedVms(false);
-        broker3 = new DatacenterBrokerLiu(simulation, "Cloud-Broker-Provider3", Arrays.asList(datacenter8, datacenter9));
+        broker3 = new DatacenterBrokerOurAcs(simulation, "Cloud-Broker-Provider3", Arrays.asList(datacenter8, datacenter9));
         broker3.setVmDestructionDelay(VM_DESTRUCTION_DELAY);
         broker3.setRetryFailedVms(false);
 
@@ -93,15 +90,16 @@ public class MainClass_Liu2017 extends ParentClass {
     }
 
     /**
-     * Creates a new VM allocation policy according to the OurAcs 2017 paper.
+     * Creates a new VM allocation policy.
      *
      * @return a new VM allocation migration policy
      */
     private VmAllocationPolicyMigration createNewVmAllocationPolicy() {
-        Liu liu2017 = new Liu2017(2, 5, 0.7, 0.1, 0.1, 2, OVERUTILIZATION_THRESHOLD, 10);;
+        OurAcs ourAcs = new OurAcs(10, 5, 2, 0.85, 0.3, 0.6, OVERUTILIZATION_THRESHOLD);
 
-        VmAllocationPolicyMigrationStaticThresholdLiu vmAllocationPolicyMigration =
-            new VmAllocationPolicyMigrationStaticThresholdLiu(liu2017);
+        VmAllocationPolicyMigrationStaticThresholdOurAcs vmAllocationPolicyMigration =
+            new VmAllocationPolicyMigrationStaticThresholdOurAcs(ourAcs);
+        vmAllocationPolicyMigration.setOverUtilizationThreshold(OVERUTILIZATION_THRESHOLD);
         vmAllocationPolicyMigration.setUnderUtilizationThreshold(UNDERUTILIZATION_THRESHOLD);
 
         return vmAllocationPolicyMigration;

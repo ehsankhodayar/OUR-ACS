@@ -1,21 +1,20 @@
-package org.myPaper;
+package org.myPaper.programs;
 
-import org.cloudbus.cloudsim.cloudlets.Cloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
-import org.cloudsimplus.builders.tables.CloudletsTableBuilder;
-import org.myPaper.broker.DatacenterBrokerMainSimpleCustomized;
+import org.myPaper.broker.DatacenterBrokerBFD;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
 
-public class MainClass_Test extends ParentClass {
+public class BFDProgram extends ParentClass {
 
-    public static void main(String[] args) {
-        new MainClass_Test();
+    public BFDProgram(final String directory, final boolean cloudFederation) {
+        super(directory, cloudFederation, false);
+
+        runProgram();
     }
 
-    private MainClass_Test() {
+    private void runProgram() {
         simulation = new CloudSim();
 
         //Provider1 Dataceneters
@@ -43,31 +42,31 @@ public class MainClass_Test extends ParentClass {
             DC9_OFF_SITE_ENERGY_PRICE, DC9_CARBON_FOOTPRINT_RATE, DC9_CARBON_TAX, DC9_WEATHER_DATASET);
 
         //Brokers of Providers
-        broker1 = new DatacenterBrokerMainSimpleCustomized(simulation, "Cloud-Broker-Provider1", Arrays.asList(datacenter1, datacenter2, datacenter3, datacenter4));
+        broker1 = new DatacenterBrokerBFD(simulation, "Cloud-Broker-Provider1", Arrays.asList(datacenter1, datacenter2, datacenter3, datacenter4));
         broker1.setVmDestructionDelay(VM_DESTRUCTION_DELAY);
+        broker1.setVmComparator(Collections.reverseOrder());
         broker1.setRetryFailedVms(false);
-        broker2 = new DatacenterBrokerMainSimpleCustomized(simulation, "Cloud-Broker-Provider2", Arrays.asList(datacenter5, datacenter6, datacenter7));
+        broker2 = new DatacenterBrokerBFD(simulation, "Cloud-Broker-Provider2", Arrays.asList(datacenter5, datacenter6, datacenter7));
         broker2.setVmDestructionDelay(VM_DESTRUCTION_DELAY);
+        broker2.setVmComparator(Collections.reverseOrder());
         broker2.setRetryFailedVms(false);
-        broker3 = new DatacenterBrokerMainSimpleCustomized(simulation, "Cloud-Broker-Provider3", Arrays.asList(datacenter8, datacenter9));
+        broker3 = new DatacenterBrokerBFD(simulation, "Cloud-Broker-Provider3", Arrays.asList(datacenter8, datacenter9));
         broker3.setVmDestructionDelay(VM_DESTRUCTION_DELAY);
+        broker3.setVmComparator(Collections.reverseOrder());
         broker3.setRetryFailedVms(false);
 
         //Createing Cloud Coordinators
         createCloudCoordinators();
 
         //Cloudlets and VMs
-        List<Cloudlet> cloudletList = createCloudlets();
+        cloudletList = createCloudlets();
         createVms(cloudletList);
-        submitWorkloadsForBrokers(cloudletList);
 
-//        simulation.terminateAt(SIMULATION_TIME);
+        //Simulation
+        simulation.addOnClockTickListener(this::simulationClocktickListener);
+        simulation.terminateAt(SIMULATION_TIME);
         simulation.start();
 
-        final List<Cloudlet> finishedCloudlets = new ArrayList<>();
-        finishedCloudlets.addAll(broker1.getCloudletFinishedList());
-        finishedCloudlets.addAll(broker2.getCloudletFinishedList());
-        finishedCloudlets.addAll(broker3.getCloudletFinishedList());
-        new CloudletsTableBuilder(finishedCloudlets).build();
+        generateExperimentalResults();
     }
 }
