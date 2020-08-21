@@ -64,7 +64,7 @@ public class DatacenterPro extends DatacenterSimple {
      */
     private final Map<Host, List<Vm>> hostVmMigrationQueueMap;
 
-    private final List<HostEventInfo> hostEventListenerSuspendQueue;
+    private final List<Host> hostEventListenerSuspensionQueue;
 
     /**
      * @see #getMaximumNumberOfLiveVmMigrations()
@@ -95,7 +95,7 @@ public class DatacenterPro extends DatacenterSimple {
         carbonRateAndTaxModel = null;
         hostOverUtilizationHistoryMap = new HashMap<>();
         hostVmMigrationQueueMap = new HashMap<>();
-        hostEventListenerSuspendQueue = new ArrayList<>();
+        hostEventListenerSuspensionQueue = new ArrayList<>();
         vmNumberOfVmMigrationsMap = new HashMap<>();
         hostCpuUtilizationHistorySimpleEntryMap = new HashMap<>();
         saveHostAverageCpuUtilization = false;
@@ -153,7 +153,7 @@ public class DatacenterPro extends DatacenterSimple {
     }
 
     private void hostOverUtilizationCheckUp(HostEventInfo hostEventInfo) {
-        if (!hostOverUtilizedStateHistory || hostEventListenerSuspendQueue.contains(hostEventInfo)) {
+        if (!hostOverUtilizedStateHistory || hostEventListenerSuspensionQueue.contains(hostEventInfo.getHost())) {
             return;
         }
         Host host = hostEventInfo.getHost();
@@ -561,23 +561,24 @@ public class DatacenterPro extends DatacenterSimple {
             increaseVmNumberOfMigrationsHistory(sourceVm);
 
             send(targetHost.getDatacenter(), delay, CloudSimTags.VM_MIGRATE, new TreeMap.SimpleEntry<>(sourceVm, targetHost));
-        } else if (!hostVmMigrationQueueMap.get(targetHost).contains(sourceVm)) {
-            sourceHost.addVmMigratingOut(sourceVm);
-
-            LOGGER.warn("{}: {}: Migration of {} is not possible at the moment due to the lack of resources at {}.",
-                currentTime,
-                getName(),
-                sourceVm,
-                targetHost);
-
-            LOGGER.info("{}: {}: The {} is added to the migration queue of {} and will be done as soon as possible.",
-                currentTime,
-                getName(),
-                sourceVm,
-                targetHost);
-
+        } else {
             hostVmMigrationQueueMap.putIfAbsent(targetHost, new ArrayList<>());
-            hostVmMigrationQueueMap.get(targetHost).add(sourceVm);
+            if (!hostVmMigrationQueueMap.get(targetHost).contains(sourceVm)) {
+                sourceHost.addVmMigratingOut(sourceVm);
+
+                LOGGER.warn("{}: {}: Migration of {} is not possible at the moment due to the lack of resources at {}.",
+                    currentTime,
+                    getName(),
+                    sourceVm,
+                    targetHost);
+
+                LOGGER.info("{}: {}: The {} is added to the migration queue of {} and will be done as soon as possible.",
+                    currentTime,
+                    getName(),
+                    sourceVm,
+                    targetHost);
+                hostVmMigrationQueueMap.get(targetHost).add(sourceVm);
+            }
         }
 
         //Turns the Vm to its previous state
@@ -585,7 +586,7 @@ public class DatacenterPro extends DatacenterSimple {
     }
 
     private void migrationQueueCheckUp(final HostEventInfo hostEventInfo) {
-        if (hostVmMigrationQueueMap.isEmpty() || hostEventListenerSuspendQueue.contains(hostEventInfo)) {
+        if (hostVmMigrationQueueMap.isEmpty() || hostEventListenerSuspensionQueue.contains(hostEventInfo.getHost())) {
             return;
         }
 
@@ -596,9 +597,9 @@ public class DatacenterPro extends DatacenterSimple {
         }
 
         //Suspend the listener in order to avoid repetitive calls
-        hostEventListenerSuspendQueue.add(hostEventInfo);
+        hostEventListenerSuspensionQueue.add(host);
 
-        List<Vm> migrationList = hostVmMigrationQueueMap.get(host);
+        List<Vm> migrationList = new ArrayList<>(hostVmMigrationQueueMap.get(host));
         List<Vm> removeQueueList = new ArrayList<>();
 
         for (Vm sourceVm : migrationList) {
@@ -616,7 +617,7 @@ public class DatacenterPro extends DatacenterSimple {
 
         removeQueueList.forEach(vm -> hostVmMigrationQueueMap.get(host).remove(vm));
 
-        hostEventListenerSuspendQueue.remove(hostEventInfo);
+        hostEventListenerSuspensionQueue.remove(host);
     }
 
     /**
