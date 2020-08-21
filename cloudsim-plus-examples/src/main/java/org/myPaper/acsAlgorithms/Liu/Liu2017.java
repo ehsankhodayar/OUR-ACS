@@ -309,13 +309,15 @@ public class Liu2017 extends LiuAbstract {
             }
             for (Map<Vm, Host> targetSolution : solutionList) {
                 if (sourceSolution.equals(targetSolution)) {
-                    if (solutionPowerConsumptionMap.get(targetSolution) <= solutionPowerConsumptionMap.get(sourceSolution) &&
-                        solutionNumberOfMigrationMap.get(targetSolution) <= solutionNumberOfMigrationMap.get(sourceSolution)) {
+                    continue ;
+                }
 
-                        if (solutionPowerConsumptionMap.get(targetSolution) < solutionPowerConsumptionMap.get(sourceSolution) ||
-                            solutionNumberOfMigrationMap.get(targetSolution) < solutionNumberOfMigrationMap.get(sourceSolution)) {
-                            continue SourceLoop;
-                        }
+                if (solutionPowerConsumptionMap.get(targetSolution) <= solutionPowerConsumptionMap.get(sourceSolution) &&
+                    solutionNumberOfMigrationMap.get(targetSolution) <= solutionNumberOfMigrationMap.get(sourceSolution)) {
+
+                    if (solutionPowerConsumptionMap.get(targetSolution) < solutionPowerConsumptionMap.get(sourceSolution) ||
+                        solutionNumberOfMigrationMap.get(targetSolution) < solutionNumberOfMigrationMap.get(sourceSolution)) {
+                        continue SourceLoop;
                     }
                 }
             }

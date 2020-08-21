@@ -1,10 +1,8 @@
 package org.myPaper.acsAlgorithms.OurAcsAlgorithm;
 
-import org.cloudbus.cloudsim.datacenters.Datacenter;
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.myPaper.acsAlgorithms.DatacenterSolutionEntry;
-import org.myPaper.datacenter.DatacenterPowerSupplyOverheadPowerAware;
 
 import java.util.*;
 
@@ -19,7 +17,7 @@ public class MinimumPowerSelectionPolicy extends KneePointSelectionPolicy {
 
         for (DatacenterSolutionEntry datacenterSolutionEntry : datacenterSolutionListMap) {
             double solutionPowerConsumption =
-                getSolutionTotalPowerConsumption(datacenterSolutionEntry.getSolution(), datacenterSolutionEntry.getDatacenter());
+                getSolutionTotalIncreasePowerConsumption(datacenterSolutionEntry.getSolution(), datacenterSolutionEntry.getDatacenter());
 
             solutionPowerConsumptionMap.put(datacenterSolutionEntry.getSolution(), solutionPowerConsumption);
         }

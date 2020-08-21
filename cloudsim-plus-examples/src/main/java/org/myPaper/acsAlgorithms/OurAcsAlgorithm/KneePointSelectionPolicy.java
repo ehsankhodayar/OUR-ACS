@@ -94,7 +94,7 @@ public class KneePointSelectionPolicy {
             Datacenter datacenter = datacenterSolutionEntry.getDatacenter();
             Map<Vm, Host> solution = datacenterSolutionEntry.getSolution();
 
-            double solutionTotalPowerConsumption = getSolutionTotalPowerConsumption(solution, datacenter);
+            double solutionTotalPowerConsumption = getSolutionTotalIncreasePowerConsumption(solution, datacenter);
 
             double totalPowerConsumptionNormalized =
                 NormalizeZeroOne.normalize(solutionTotalPowerConsumption, maximumIncreaseInPowerConsumption, minimumIncreaseInPowerConsumption);
@@ -131,7 +131,7 @@ public class KneePointSelectionPolicy {
      */
     public List<DatacenterSolutionEntry> getNonDominatedSortation(final List<DatacenterSolutionEntry> datacenterSolutionListMap) {
         //The It infrastructures power consumption + datacenter overhead power consumption
-        Map<DatacenterSolutionEntry, Double> solutionPowerConsumptionMap = new HashMap<>();
+        Map<DatacenterSolutionEntry, Double> solutionIncreaseInPowerConsumptionMap = new HashMap<>();
 
         //The carbon footprint of power consumption
         Map<DatacenterSolutionEntry, Double> solutionCarbonFootprintMap = new HashMap<>();
@@ -149,13 +149,13 @@ public class KneePointSelectionPolicy {
             Datacenter datacenter = datacenterSolutionEntry.getDatacenter();
             Map<Vm, Host> solution = datacenterSolutionEntry.getSolution();
 
-            double solutionTotalPowerConsumption = getSolutionTotalPowerConsumption(solution, datacenter);
+            double solutionTotalIncreaseInPowerConsumption = getSolutionTotalIncreasePowerConsumption(solution, datacenter);
 
-            solutionPowerConsumptionMap.put(datacenterSolutionEntry, solutionTotalPowerConsumption);
-            solutionCarbonFootprintMap.put(datacenterSolutionEntry, getTotalCarbonEmission(solutionTotalPowerConsumption, datacenter));
+            solutionIncreaseInPowerConsumptionMap.put(datacenterSolutionEntry, solutionTotalIncreaseInPowerConsumption);
+            solutionCarbonFootprintMap.put(datacenterSolutionEntry, getTotalCarbonEmission(solutionTotalIncreaseInPowerConsumption, datacenter));
             solutionNumberOfActiveHostsMap.put(datacenterSolutionEntry, getSolutionNumberOfActiveHosts(solution));
             solutionNumberOfMigrationMap.put(datacenterSolutionEntry, getMigrationMapOfSolution(solution).size());
-            solutionTotalCost.put(datacenterSolutionEntry, getTotalCost(solutionTotalPowerConsumption, datacenter));
+            solutionTotalCost.put(datacenterSolutionEntry, getTotalCost(solutionTotalIncreaseInPowerConsumption, datacenter));
         }
 
         List<DatacenterSolutionEntry> nonDominatedSolutionsInFirstFront = new ArrayList<>();
@@ -176,13 +176,13 @@ public class KneePointSelectionPolicy {
                     continue ;
                 }
 
-                if (solutionPowerConsumptionMap.get(entryTarget) <= solutionPowerConsumptionMap.get(entrySource) &&
+                if (solutionIncreaseInPowerConsumptionMap.get(entryTarget) <= solutionIncreaseInPowerConsumptionMap.get(entrySource) &&
                     solutionCarbonFootprintMap.get(entryTarget) <= solutionCarbonFootprintMap.get(entrySource) &&
                     solutionNumberOfActiveHostsMap.get(entryTarget) <= solutionNumberOfActiveHostsMap.get(entrySource) &&
                     solutionNumberOfMigrationMap.get(entryTarget) <= solutionNumberOfMigrationMap.get(entrySource) &&
                     solutionTotalCost.get(entryTarget) <= solutionTotalCost.get(entrySource)) {
 
-                    if (solutionPowerConsumptionMap.get(entryTarget) < solutionPowerConsumptionMap.get(entrySource) ||
+                    if (solutionIncreaseInPowerConsumptionMap.get(entryTarget) < solutionIncreaseInPowerConsumptionMap.get(entrySource) ||
                         solutionCarbonFootprintMap.get(entryTarget) < solutionCarbonFootprintMap.get(entrySource) ||
                         solutionNumberOfActiveHostsMap.get(entryTarget) < solutionNumberOfActiveHostsMap.get(entrySource) ||
                         solutionNumberOfMigrationMap.get(entryTarget) < solutionNumberOfMigrationMap.get(entrySource) ||
@@ -201,14 +201,14 @@ public class KneePointSelectionPolicy {
     }
 
     /**
-     * Gets the total power consumption of the given solution in Watt-S. It consists the total power consumption of IT
+     * Gets the total increase in power consumption of the given solution in Watt-S. It consists the total power consumption of IT
      * infrastructures by the given hosts and the datacenter's overhead power consumption.
      *
      * @param solution the solution
      * @param datacenter the datacenter
      * @return the total power consumption in Watt-S (IT infrastructures' power consumption + datacenter's overhead power consumption)
      */
-    public double getSolutionTotalPowerConsumption(final Map<Vm, Host> solution, Datacenter datacenter) {
+    public double getSolutionTotalIncreasePowerConsumption(final Map<Vm, Host> solution, Datacenter datacenter) {
         Map<Host, List<Vm>> hostNewVmListMap = convertSolutionMapToHostTemporaryVmListMap(solution);
 
         double currentITPowerConsumption = getSolutionCurrentITPowerConsumption(solution);

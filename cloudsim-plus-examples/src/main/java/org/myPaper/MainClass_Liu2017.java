@@ -98,11 +98,10 @@ public class MainClass_Liu2017 extends ParentClass {
      * @return a new VM allocation migration policy
      */
     private VmAllocationPolicyMigration createNewVmAllocationPolicy() {
-        Liu liu2017 = new Liu2017(5, 5, 0.7, 0.1, 0.1, 2, OVERUTILIZATION_THRESHOLD, 10);;
+        Liu liu2017 = new Liu2017(2, 5, 0.7, 0.1, 0.1, 2, OVERUTILIZATION_THRESHOLD, 10);;
 
         VmAllocationPolicyMigrationStaticThresholdLiu vmAllocationPolicyMigration =
             new VmAllocationPolicyMigrationStaticThresholdLiu(liu2017);
-        vmAllocationPolicyMigration.setOverUtilizationThreshold(0.5);
         vmAllocationPolicyMigration.setUnderUtilizationThreshold(UNDERUTILIZATION_THRESHOLD);
 
         return vmAllocationPolicyMigration;

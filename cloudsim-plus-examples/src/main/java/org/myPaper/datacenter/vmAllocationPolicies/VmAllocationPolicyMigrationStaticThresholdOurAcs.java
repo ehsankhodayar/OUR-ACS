@@ -96,7 +96,7 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
             LOGGER.info("{}: {} found a solution for the requested Vm list.",
                 getDatacenter().getSimulation().clockStr(),
                 getDatacenter());
-        }else {
+        } else {
             LOGGER.warn("{}: {} could not find any solution for the requested Vm list!",
                 getDatacenter().getSimulation().clockStr(),
                 getDatacenter());
@@ -240,12 +240,12 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
 
                 if (!migrationMap.equals(newMigrationMap)) {
                     LOGGER.info("{}: {}: the migration lock-in solver solves the migration lock-in status successfully. " +
-                        "The migration map is going to be resorted again.",
+                            "The migration map is going to be resorted again.",
                         getDatacenter().getSimulation().clockStr(),
                         getDatacenter().getName());
 
                     return sortMigrationMap(newMigrationMap);
-                }else {
+                } else {
                     LOGGER.warn("{}: {}: the migration lock-in solver couldn't solve the migration lock-in status!",
                         getDatacenter().getSimulation().clockStr(),
                         getDatacenter().getName());
@@ -318,7 +318,7 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
                     getDatacenter(),
                     overloadedHost,
                     overloadedHostVmList);
-            }else {
+            } else {
                 LOGGER.warn("{}: {}: No suitable Vm was found for migration out from overloaded {}!",
                     getDatacenter().getSimulation().clockStr(),
                     getDatacenter(),
@@ -345,7 +345,7 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
                     getDatacenter(),
                     underloadedHost,
                     underloadedHostVmList.toString());
-            }else {
+            } else {
                 LOGGER.warn("{}: {}: The underloaded {} is not ready to have any Vm migration!",
                     getDatacenter().getSimulation().clockStr(),
                     getDatacenter(),
@@ -390,7 +390,7 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
         List<Vm> temporaryVmList = new ArrayList<>(host.getVmList());
         List<Vm> selectedVmList = new ArrayList<>();
 
-        do{
+        do {
             Vm selectedVm = vmSelectionPolicy.getVmToMigrate(temporaryVmList);
 
             if (selectedVm == Vm.NULL) {
@@ -403,7 +403,7 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
                 selectedVmList.add(selectedVm);
             }
 
-        }while (!temporaryVmList.isEmpty() && isHostOverloaded(host, temporaryVmList));
+        } while (!temporaryVmList.isEmpty() && isHostOverloaded(host, temporaryVmList));
 
         if (!temporaryVmList.isEmpty() && isHostOverloaded(host, temporaryVmList)) {
             return Collections.emptyList();
@@ -547,7 +547,7 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
     private boolean isCloudFederationActive() {
         if (getDatacenterPro().getCloudCoordinator() == null) {
             return false;
-        }else {
+        } else {
             return !getDatacenterPro().getCloudCoordinator().getExternalBrokerList().isEmpty();
         }
     }
@@ -594,7 +594,7 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
         Map<Vm, Host> newMigrationMap = new LinkedHashMap<>(migrationMap);
 
         for (Map<Vm, Host> migrationLoopEntry : migrationLoopMapList) {
-            Map<Vm, Host> newLoopEntryMap = new HashMap<>(migrationLoopEntry);
+            Map<Vm, Host> currentLoopMap = new HashMap<>(migrationLoopEntry);
             Map<Host, List<Vm>> hostMigratingOutVmMap = new HashMap<>();
             migrationLoopEntry.forEach((vm, host) -> {
                 hostMigratingOutVmMap.putIfAbsent(vm.getHost(), new ArrayList<>());
@@ -629,92 +629,73 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
                 concatList.addAll(currentSolutionDestinationHostList);
                 concatList.addAll(currentSolutionSourceHostList);
 
-                //List of sorted hosts at current migration map according to their Cpu MIPS utilization in descending order
+                //List of sorted hosts at current migration map
                 List<Host> currentSolutionTotalHostList = concatList.parallelStream()
                     .distinct()
-                    .sorted(Comparator.comparing(Host::getCpuMipsUtilization))
-                    .sorted(Comparator.reverseOrder())
                     .collect(Collectors.toList());
 
-                for (Vm loopHostVm : loopHostSortedVmList) {
-                    //Firstly try to find a suitable host among the current solution migration map
-                    for (Host host : currentSolutionTotalHostList) {
+                //List of sorted hosts that has not been used in the current migration map yet
+                List<Host> notTriedHostList = getHostList().parallelStream()
+                    .filter(host -> !currentSolutionTotalHostList.contains(host))
+                    .sorted(Comparator.comparing(Host::getCpuMipsUtilization))
+                    .collect(Collectors.toList());
+
+                loopVmIteration:
+                for (Vm vmInLoop : loopHostSortedVmList) {
+                    //Try the hosts that do not exist in the current migration map
+                    for (Host host : notTriedHostList) {
                         List<Vm> newVmList = getHostNewVmList(host, newMigrationMap);
 
-                        if (isHostSuitableForVm(loopHostVm, host, newVmList)) {
-                            newVmList.add(loopHostVm);
+                        if (isHostSuitableForVm(vmInLoop, host, newVmList)) {
+                            newVmList.add(vmInLoop);
 
                             if (isHostOverloaded(host, newVmList)) {
                                 continue;
                             }
 
-                            newMigrationMap.replace(loopHostVm, host);
-                            newLoopEntryMap.replace(loopHostVm, host);
+                            newMigrationMap.replace(vmInLoop, host);
+                            currentLoopMap.replace(vmInLoop, host);
 
-                            if (isMigrationMapFeasible(newLoopEntryMap)) {
+                            if (isMigrationMapFeasible(currentLoopMap)) {
                                 break loopHostIteration;
-                            }
-                        }
-                    }
-
-                    //List of sorted hosts that has not been used in the current migration map yet
-                    List<Host> notTriedHostList = getHostList().parallelStream()
-                        .filter(host -> !currentSolutionTotalHostList.contains(host))
-                        .sorted(Comparator.comparing(Host::getCpuMipsUtilization))
-                        .collect(Collectors.toList());
-
-                    //Secondly tries the hosts that do not exist in the current migration map if a suitable host wast not found
-                    for (Host host : notTriedHostList) {
-                        if (isHostSuitableForVm(loopHostVm, host, host.getVmList())) {
-                            List<Vm> temporaryVmList = new ArrayList<>(host.getVmList());
-                            temporaryVmList.add(loopHostVm);
-
-                            if (isHostOverloaded(host, temporaryVmList)) {
-                                continue;
-                            }
-
-                            newMigrationMap.replace(loopHostVm, host);
-                            newLoopEntryMap.replace(loopHostVm, host);
-
-                            if (isMigrationMapFeasible(newLoopEntryMap)) {
-                                break loopHostIteration;
+                            } else {
+                                continue loopVmIteration;
                             }
                         }
                     }
                 }
-
-            }
-
-            if (isMigrationMapFeasible(newMigrationMap)) {
-                return newMigrationMap;
             }
         }
 
-
-        return migrationMap;
+        if (isMigrationMapFeasible(newMigrationMap)) {
+            return newMigrationMap;
+        } else {
+            return migrationMap;
+        }
     }
 
     /**
      * Gets the new Vm list of the given host according to the given solution map.
      *
-     * @param host the host
+     * @param host     the host
      * @param solution the solution map
      * @return the new Vm list
      */
     private List<Vm> getHostNewVmList(final Host host, final Map<Vm, Host> solution) {
 
-        List<Vm> hostRemainingVmList = host.getVmList().parallelStream()
+        List<Vm> vmList = host.getVmList().parallelStream()
             .filter(vm -> !solution.containsKey(vm))
             .collect(Collectors.toList());
 
         List<Vm> hostTemporaryVmList = solution.entrySet().parallelStream()
-            .filter(vmHostEntry -> !hostRemainingVmList.contains(vmHostEntry.getKey()))
+            .filter(vmHostEntry -> !vmList.contains(vmHostEntry.getKey()))
+            .filter(vmHostEntry -> vmHostEntry.getValue() == host)
             .map(Map.Entry::getKey)
             .collect(Collectors.toList());
 
-        hostRemainingVmList.addAll(hostTemporaryVmList);
+        vmList.addAll(hostTemporaryVmList);
 
-        return hostRemainingVmList;
+        return vmList;
     }
 
     /**
@@ -733,7 +714,7 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
         List<Map<Vm, Host>> migrationLockInMapList = new ArrayList<>();
 
         for (Map.Entry<Vm, Host> vmHostEntry : migrationLockInMap.entrySet()) {
-            Map<Vm, Host> temporaryMap = new HashMap<>();
+            Map<Vm, Host> temporaryLoopMap = new HashMap<>();
 
             Vm sourceVm = vmHostEntry.getKey();
             Host sourceHost = sourceVm.getHost();
@@ -743,54 +724,99 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
                 continue;
             }
 
-            temporaryMap.put(sourceVm, destinationHost);
+            temporaryLoopMap.put(sourceVm, destinationHost);
             newMigrationLockInMap.remove(sourceVm);
 
-            Host previousDestination = destinationHost;
+            Host nextDestination = destinationHost;
+            List<Host> migrationPath = new ArrayList<>();
+            List<Host> ignoredDestinationHostList = new ArrayList<>();
+            List<Host> notTriedDestinationList = new ArrayList<>();
 
-            boolean loopIsDetected = false;
+            migrationPath.add(sourceHost);
+
+            boolean infeasibleLoopIsDetected = false;
             while (true) {
-                Host finalPreviousDestination = previousDestination;
-                Map<Vm, Host> nextEntry = newMigrationLockInMap.entrySet().parallelStream()
-                    .filter(comparativeVmHostEntry -> comparativeVmHostEntry.getKey().getHost() == finalPreviousDestination)
+
+                Host finalNextDestination = nextDestination;
+                //Find migration plans that their source current host is the destination of nextDestination
+                Map<Vm, Host> connectedMigrationPlans = newMigrationLockInMap.entrySet().parallelStream()
+                    .filter(comparativeVmHostEntry -> comparativeVmHostEntry.getKey().getHost() == finalNextDestination)
+                    .filter(comparativeVmHostEntry ->
+                        !migrationPath.contains(comparativeVmHostEntry.getKey().getHost()) || comparativeVmHostEntry.getKey().getHost() == sourceHost)
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-                previousDestination = nextEntry.values().stream()
-                    .filter(host -> host != finalPreviousDestination)
+                Host previousDestination = nextDestination;
+                migrationPath.add(previousDestination);
+
+                //Find connected destination hosts
+                List<Host> possibleDestinationHosts = connectedMigrationPlans.values().parallelStream().distinct()
+                    .filter(host -> !ignoredDestinationHostList.contains(host))
+                    .filter(host -> !migrationPath.contains(host) || sourceHost == host)
+                    .collect(Collectors.toList());
+
+                //Choose one of the possible destinations
+                nextDestination = possibleDestinationHosts.parallelStream()
                     .findFirst()
                     .orElse(Host.NULL);
 
-                if (previousDestination == Host.NULL) {
-                    break;
+                if (nextDestination != Host.NULL && possibleDestinationHosts.size() > 1) {
+                    //Add not tried destinations to not tried destination list
+                    Host finalNextDestination1 = nextDestination;
+                    List<Host> remainingHostList = possibleDestinationHosts.parallelStream()
+                        .filter(notTriedDestination -> !notTriedDestinationList.contains(notTriedDestination))
+                        .filter(notTriedDestination -> notTriedDestination != finalNextDestination1)
+                        .collect(Collectors.toList());
+
+                    notTriedDestinationList.addAll(remainingHostList);
                 }
 
-                temporaryMap.putAll(nextEntry);
+                if (nextDestination == Host.NULL) {
+                    if (!ignoredDestinationHostList.contains(previousDestination)) {
+                        //Add the previous destination host to the list of ignored hosts in order to be checked again
 
-                if (sourceHost == previousDestination) {
-                    List<Host> loopSourceHostList = temporaryMap.entrySet().parallelStream()
-                        .map(vmHostEntry1 -> vmHostEntry1.getKey().getHost())
-                        .collect(Collectors.toList());
-
-                    List<Vm> loopNotRelatedVmList = temporaryMap.entrySet().parallelStream()
-                        .filter(vmHostEntry1 -> !loopSourceHostList.contains(vmHostEntry1.getValue()))
-                        .map(Map.Entry::getKey)
-                        .collect(Collectors.toList());
-
-                    //Remove not related entries to this loop
-                    loopNotRelatedVmList.forEach(temporaryMap::remove);
-
-                    //Select the loop if it is an infeasible migration map
-                    if (!isMigrationMapFeasible(temporaryMap)) {
-                        migrationLockInMapList.add(temporaryMap);
+                        ignoredDestinationHostList.add(previousDestination);
                     }
 
-                    loopIsDetected = true;
+                    //Remove previous destination from not tried destination list if exist
+                    notTriedDestinationList.remove(previousDestination);
+
+                    if (notTriedDestinationList.isEmpty()) {
+                        //Break from while loop because the source node does not involve in any loop
+                        break;
+                    } else {
+                        //Reset the temporary loop map and the migration path if any not tried destination is available at not tried destination list
+
+                        nextDestination = destinationHost;
+                        temporaryLoopMap.clear();
+                        temporaryLoopMap.put(sourceVm, destinationHost);
+                        migrationPath.clear();
+                        migrationPath.add(sourceHost);
+
+                        continue;
+                    }
+                }
+
+                notTriedDestinationList.remove(previousDestination);
+
+                Host finalNextDestination2 = nextDestination;
+                Map<Vm, Host> nextNodes = connectedMigrationPlans.entrySet().parallelStream()
+                    .filter(vmHostEntry1 -> vmHostEntry1.getValue() == finalNextDestination2)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                temporaryLoopMap.putAll(nextNodes);
+
+                if (sourceHost == nextDestination) {
+                    //Select the loop if it is an infeasible migration map
+                    if (!isMigrationMapFeasible(temporaryLoopMap)) {
+                        migrationLockInMapList.add(temporaryLoopMap);
+                        infeasibleLoopIsDetected = true;
+                    }
+
                     break;
                 }
             }
 
-            if (loopIsDetected) {
-                temporaryMap.forEach(newMigrationLockInMap::remove);
+            if (infeasibleLoopIsDetected) {
+                temporaryLoopMap.forEach(newMigrationLockInMap::remove);
             }
         }
 
@@ -811,8 +837,7 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
             hostVmListMap.putIfAbsent(host, new ArrayList<>(vmList));
         });
 
-        Map<Vm, Host> feasibleMigrationMap = new LinkedHashMap<>();
-        Map<Vm, Host> notFeasibleMigrationMap = new HashMap<>();
+        Map<Vm, Host> notFeasibleMigrationMap = new LinkedHashMap<>();
 
         for (Map.Entry<Vm, Host> vmHostEntry : migrationMap.entrySet()) {
             Vm sourceVm = vmHostEntry.getKey();
@@ -820,8 +845,6 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
             Host targetHost = vmHostEntry.getValue();
 
             if (isHostSuitableForVm(sourceVm, targetHost, hostVmListMap.get(targetHost))) {
-                feasibleMigrationMap.put(sourceVm, targetHost);
-
                 //deallocating the VM from source targetHost
                 if (hostVmListMap.containsKey(sourceHost)) {
                     hostVmListMap.get(sourceHost).remove(sourceVm);
@@ -843,7 +866,6 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
                 Host targetHost = vmHostEntry.getValue();
 
                 if (isHostSuitableForVm(sourceVm, targetHost, hostVmListMap.get(targetHost))) {
-                    feasibleMigrationMap.put(sourceVm, targetHost);
                     newFeasibleMigration.put(sourceVm, targetHost);
 
                     //deallocating the VM from source targetHost
@@ -863,6 +885,6 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
             }
         }
 
-        return feasibleMigrationMap.size() == migrationMap.size();
+        return true;
     }
 }

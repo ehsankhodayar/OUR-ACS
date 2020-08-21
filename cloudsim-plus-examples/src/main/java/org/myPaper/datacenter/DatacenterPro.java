@@ -62,7 +62,7 @@ public class DatacenterPro extends DatacenterSimple {
     /**
      * @see #migrationQueueCheckUp(HostEventInfo)
      */
-    private Map<Vm, Host> migrationQueue;
+    private Map<Host, List<Vm>> hostVmMigrationQueueMap;
 
     private final List<HostEventInfo> hostEventListenerSuspendQueue;
 
@@ -94,7 +94,7 @@ public class DatacenterPro extends DatacenterSimple {
         energyPriceModel = null;
         carbonRateAndTaxModel = null;
         hostOverUtilizationHistoryMap = new HashMap<>();
-        migrationQueue = new HashMap<>();
+        hostVmMigrationQueueMap = new HashMap<>();
         hostEventListenerSuspendQueue = new ArrayList<>();
         vmNumberOfVmMigrationsMap = new HashMap<>();
         hostCpuUtilizationHistorySimpleEntryMap = new HashMap<>();
@@ -561,7 +561,7 @@ public class DatacenterPro extends DatacenterSimple {
             increaseVmNumberOfMigrationsHistory(sourceVm);
 
             send(targetHost.getDatacenter(), delay, CloudSimTags.VM_MIGRATE, new TreeMap.SimpleEntry<>(sourceVm, targetHost));
-        } else if (!migrationQueue.containsKey(sourceVm)) {
+        } else if (!hostVmMigrationQueueMap.get(targetHost).contains(sourceVm)) {
             sourceHost.addVmMigratingOut(sourceVm);
 
             LOGGER.warn("{}: {}: Migration of {} is not possible at the moment due to the lack of resources at {}.",
@@ -576,7 +576,8 @@ public class DatacenterPro extends DatacenterSimple {
                 sourceVm,
                 targetHost);
 
-            migrationQueue.put(sourceVm, targetHost);
+            hostVmMigrationQueueMap.putIfAbsent(targetHost, new ArrayList<>());
+            hostVmMigrationQueueMap.get(targetHost).add(sourceVm);
         }
 
         //Turns the Vm to its previous state
@@ -584,50 +585,36 @@ public class DatacenterPro extends DatacenterSimple {
     }
 
     private void migrationQueueCheckUp(final HostEventInfo hostEventInfo) {
-        if (migrationQueue.isEmpty() || hostEventListenerSuspendQueue.contains(hostEventInfo)) {
+        if (hostVmMigrationQueueMap.isEmpty() || hostEventListenerSuspendQueue.contains(hostEventInfo)) {
             return;
         }
 
         Host host = hostEventInfo.getHost();
 
-        if (!migrationQueue.containsValue(host)) {
+        if (!hostVmMigrationQueueMap.containsKey(host) || hostVmMigrationQueueMap.get(host).isEmpty()) {
             return;
         }
 
-        //Removing the listener in order to avoid repetitive calls
+        //Suspend the listener in order to avoid repetitive calls
         hostEventListenerSuspendQueue.add(hostEventInfo);
 
-        Map<Vm, Host> migrationQueueCopy = new HashMap<>(migrationQueue);
+        List<Vm> migrationList = hostVmMigrationQueueMap.get(host);
         List<Vm> removeQueueList = new ArrayList<>();
 
-        do {
-            removeQueueList.clear();
+        for (Vm sourceVm : migrationList) {
+            if (host.isSuitableForVm(sourceVm)) {
+                LOGGER.info("{}: {}: {} has become suitable for {} and closed the VM from its migration queue.",
+                    getSimulation().clockStr(),
+                    getName(),
+                    host,
+                    sourceVm);
 
-            for (Map.Entry<Vm, Host> vmTargetHostEntry : migrationQueueCopy.entrySet()) {
-                Vm sourceVm = vmTargetHostEntry.getKey();
-                Host targetHost = vmTargetHostEntry.getValue();
-
-                if (host == targetHost) {
-                    if (targetHost.isSuitableForVm(sourceVm)) {
-                        LOGGER.info("{}: {}: {} has become suitable for {} and closed the VM from its migration queue.",
-                            getSimulation().clockStr(),
-                            getName(),
-                            targetHost,
-                            sourceVm);
-                        requestVmMigration(sourceVm, targetHost);
-                        removeQueueList.add(sourceVm);
-                    }
-                }
+                requestVmMigration(sourceVm, host);
+                removeQueueList.add(sourceVm);
             }
+        }
 
-            removeQueueList.forEach(migrationQueueCopy::remove);
-
-            if (migrationQueueCopy.isEmpty()) {
-                break;
-            }
-        } while (!removeQueueList.isEmpty());
-
-        migrationQueue = migrationQueueCopy;
+        removeQueueList.forEach(vm -> hostVmMigrationQueueMap.get(host).remove(vm));
 
         hostEventListenerSuspendQueue.remove(hostEventInfo);
     }
