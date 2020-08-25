@@ -97,7 +97,7 @@ public class Liu2017Program extends ParentClass {
      * @return a new VM allocation migration policy
      */
     private VmAllocationPolicyMigration createNewVmAllocationPolicy() {
-        Liu liu2017 = new Liu2017(2, 5, 0.7, 0.1, 0.1, 2, OVERUTILIZATION_THRESHOLD, 10);;
+        Liu liu2017 = new Liu2017(5, 5, 0.7, 0.1, 0.1, 2, OVERUTILIZATION_THRESHOLD, 10);;
 
         VmAllocationPolicyMigrationStaticThresholdLiu vmAllocationPolicyMigration =
             new VmAllocationPolicyMigrationStaticThresholdLiu(liu2017);

@@ -518,17 +518,18 @@ public class OurAcs {
         final double memoryWastage = getHostTotalMemoryWastage(host, hostTemporaryVmListCopy);
 
         if (cpuWastage > 1 || memoryWastage > 1 || cpuWastage < 0 || memoryWastage < 0) {
-            throwIllegalState("The CPU or Memory wastage must be >= 0 && < 1", "getHostHeuristic");
+            throwIllegalState("The CPU or Memory wastage must be between >= 0 an <= 1", "getHostHeuristic");
         }
 
         final double hostFutureCpuUtilization = getHostMipsUtilization(host, hostTemporaryVmListCopy) / host.getTotalMipsCapacity();
-        final double currentPowerConsumption = host.getPowerModel().getPower(host.getCpuPercentUtilization());
+        final double currentPowerConsumption = host.isActive() ? host.getPowerModel().getPower(host.getCpuPercentUtilization()) : 10;
         final double newPowerConsumption = host.getPowerModel().getPower(hostFutureCpuUtilization);
         final double increaseInPowerConsumption = newPowerConsumption - currentPowerConsumption;
         double normalizedPowerConsumption =
             NormalizeZeroOne.normalize(increaseInPowerConsumption, host.getPowerModel().getMaxPower() - currentPowerConsumption, 0);
+        final int priority = hostTemporaryVmListCopy.size();
 
-        return (w * (1 / (normalizedPowerConsumption + 1))) + ((1 - w) * (1 / (cpuWastage + memoryWastage + 1)));
+        return ((w * (1 / (normalizedPowerConsumption + 1))) + ((1 - w) * (1 / (cpuWastage + memoryWastage + 1)))) * priority;
     }
 
     /**
@@ -730,9 +731,9 @@ public class OurAcs {
             Host host = vmHostEntry.getValue();
 
             double resourceWastage = getSolutionTotalResourceWastageNormalize(solution);
-            double solutionPowerConsumptionNormalized = getSolutionTotalIncreaseInPowerConsumptionNormalized(solution);
+            double solutionTotalIncreaseInPowerConsumptionNormalized = getSolutionTotalIncreaseInPowerConsumptionNormalized(solution);
             double currentPheromoneValue = pheromoneInformationMap.get(vm).getPheromoneValue(host);
-            double reinforcementValue = (1 / (resourceWastage + 1)) + (1 / (solutionPowerConsumptionNormalized + 1));
+            double reinforcementValue = (1 / (resourceWastage + 1)) + (1 / (solutionTotalIncreaseInPowerConsumptionNormalized + 1));
             double newPheromoneValue = (1 - PHEROMONE_DECAY) * currentPheromoneValue + PHEROMONE_DECAY * reinforcementValue;
             pheromoneInformationMap.get(vm).updatePheromoneValue(host, newPheromoneValue);
         }

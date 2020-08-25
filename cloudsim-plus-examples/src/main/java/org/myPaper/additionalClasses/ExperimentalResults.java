@@ -29,7 +29,7 @@ public class ExperimentalResults {
                                final LocalTime finishTime) {
         int numberOfSubmittedVmReqs = brokerList.stream()
             .mapToInt(datacenterBroker ->
-                datacenterBroker.getCloudletSubmittedList().size())
+                datacenterBroker.getVmCreatedList().size() + datacenterBroker.getVmWaitingList().size() + datacenterBroker.getVmFailedList().size())
             .sum();
 
         SOURCE_DIR = new File(outputDirectory + "\\" + LocalTime.now().toString().replace(":", "-") +
@@ -202,11 +202,11 @@ public class ExperimentalResults {
                 averageESV += esv;
                 averagePUE += datacenterPro.getPowerSupplyOverheadPowerAware().getAveragePueDuringSimulation();
                 totalEnergyConsumption += (datacenter.getPower() / 1000 / 3600);
-                totalEnergyCost += datacenterPro.getTotalEnergyCost(totalEnergyConsumption * 1000) / 100;
-                totalCarbonEmission += datacenterPro.getTotalCarbonFootprint(totalEnergyConsumption * 1000) * 1000;
-                totalCarbonTax += datacenterPro.getTotalCarbonTax(totalEnergyConsumption * 1000) / 100;
-                totalCost += datacenterPro.getTotalEnergyCost(totalEnergyConsumption * 1000) / 100 +
-                    datacenterPro.getTotalCarbonTax(totalEnergyConsumption * 1000) / 100;
+                totalEnergyCost += datacenterPro.getTotalEnergyCost(datacenter.getPower() / 3600) / 100;
+                totalCarbonEmission += datacenterPro.getTotalCarbonFootprint(datacenter.getPower() / 3600) * 1000;
+                totalCarbonTax += datacenterPro.getTotalCarbonTax(datacenter.getPower() / 3600) / 100;
+                totalCost += datacenterPro.getTotalEnergyCost(datacenter.getPower() / 3600) / 100 +
+                    datacenterPro.getTotalCarbonTax(datacenter.getPower() / 3600) / 100;
             }
         }
 
@@ -240,7 +240,6 @@ public class ExperimentalResults {
         int provider = 1;
         for (DatacenterBroker broker : BROKERS) {
             double averageVmsExecutionTime = broker.getVmCreatedList().stream()
-                .filter(vm -> !vm.isWorking())
                 .mapToDouble(Vm::getTotalExecutionTime)
                 .average()
                 .orElse(0);
@@ -282,7 +281,6 @@ public class ExperimentalResults {
             totalNumberOfWaitingVms += broker.getVmWaitingList().size();
             totalNumberOfFailedVms += broker.getVmFailedList().size();
             averageVmsExecutionTime += broker.getVmCreatedList().stream()
-                .filter(vm -> !vm.isWorking())
                 .mapToDouble(Vm::getTotalExecutionTime)
                 .average()
                 .orElse(0);

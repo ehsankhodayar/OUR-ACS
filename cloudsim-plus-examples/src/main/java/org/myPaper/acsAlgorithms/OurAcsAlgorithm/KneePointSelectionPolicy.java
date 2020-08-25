@@ -54,39 +54,17 @@ public class KneePointSelectionPolicy {
 
         double minimumIncreaseInPowerConsumption = 0;
 
-        double maximumIncreaseInPowerConsumption = 3600_000;//1 KWh
+        double maximumIncreaseInPowerConsumption = 10_000;//10 KW
 
         //Carbon footprint
         double minimumIncreaseInCarbonFootprint = 0;
 
-        double maximumIncreaseCarbonFootprint = datacenterSolutionListMap.parallelStream()
-            .map(DatacenterSolutionEntry::getDatacenter)
-            .mapToDouble(datacenter -> getDatacenterPro(datacenter).getTotalCarbonFootprint(maximumIncreaseInPowerConsumption / 3600))
-            .max()
-            .orElse(0) + 1;
-
-        //Active hosts
-        int minimumNumberOfActiveHosts = 0;
-        int maximumNumberOfActiveHosts = datacenterSolutionListMap.parallelStream()
-            .map(DatacenterSolutionEntry::getSolution)
-            .mapToInt(solution -> convertSolutionMapToHostTemporaryVmListMap(solution).keySet().size())
-            .max()
-            .orElse(0) + 1;
-
-        //The number of Vm migrations
-        int minimumNumberOfVmMigrations = 0;
-        int maximumNumberOfVmMigrations = getMaximumNumberOfVmMigrationsAccordingToSolutionSet(datacenterSolutionListMap) + 1;
+        double maximumIncreaseCarbonFootprint = 1;//1 ton
 
         //Total cost
         double minimumIncreaseInCost = 0;
 
-        double maximumIncreaseInCost = datacenterSolutionListMap.parallelStream()
-            .map(DatacenterSolutionEntry::getDatacenter)
-            .mapToDouble(datacenter ->
-                getDatacenterPro(datacenter).getTotalEnergyCost(maximumIncreaseInPowerConsumption / 300) +
-                getDatacenterPro(datacenter).getTotalCarbonFootprint(maximumIncreaseInPowerConsumption / 3600))
-            .max()
-            .orElse(0) + 1;
+        double maximumIncreaseInCost = 10_000;//100$
 
         //Record the hypervolume of each solution in the following map
         Map<Map<Vm, Host>, Double> solutionHypervolumeMap = new HashMap<>();
@@ -101,18 +79,11 @@ public class KneePointSelectionPolicy {
             double totalCarbonFootprintNormalized =
                 NormalizeZeroOne.normalize(getTotalCarbonEmission(solutionTotalPowerConsumption, datacenter),
                     maximumIncreaseCarbonFootprint, minimumIncreaseInCarbonFootprint);
-            double numberOfActiveHostsNormalized =
-                NormalizeZeroOne.normalize(getSolutionNumberOfActiveHosts(solution),
-                    maximumNumberOfActiveHosts, minimumNumberOfActiveHosts);
-            double numberOfVmMigrationsNormalized =
-                NormalizeZeroOne.normalize(getMigrationMapOfSolution(solution).size(), maximumNumberOfVmMigrations, minimumNumberOfVmMigrations);
             double totalCostNormalized =
                 NormalizeZeroOne.normalize(getTotalCost(solutionTotalPowerConsumption, datacenter), maximumIncreaseInCost, minimumIncreaseInCost);
 
             double hypervolume = (referencePint - totalPowerConsumptionNormalized) *
                 (referencePint - totalCarbonFootprintNormalized) *
-                (referencePint - numberOfActiveHostsNormalized) *
-                (referencePint - numberOfVmMigrationsNormalized) *
                 (referencePint - totalCostNormalized);
 
             solutionHypervolumeMap.put(solution, hypervolume);
@@ -136,12 +107,6 @@ public class KneePointSelectionPolicy {
         //The carbon footprint of power consumption
         Map<DatacenterSolutionEntry, Double> solutionCarbonFootprintMap = new HashMap<>();
 
-        //Total number of active hosts at the target data center by the given solution
-        Map<DatacenterSolutionEntry, Integer> solutionNumberOfActiveHostsMap = new HashMap<>();
-
-        //Total number of solution's Vm migrations
-        Map<DatacenterSolutionEntry, Integer> solutionNumberOfMigrationMap = new HashMap<>();
-
         //The energy cost ($) + the carbon tax ($)
         Map<DatacenterSolutionEntry, Double> solutionTotalCost = new HashMap<>();
 
@@ -153,8 +118,6 @@ public class KneePointSelectionPolicy {
 
             solutionIncreaseInPowerConsumptionMap.put(datacenterSolutionEntry, solutionTotalIncreaseInPowerConsumption);
             solutionCarbonFootprintMap.put(datacenterSolutionEntry, getTotalCarbonEmission(solutionTotalIncreaseInPowerConsumption, datacenter));
-            solutionNumberOfActiveHostsMap.put(datacenterSolutionEntry, getSolutionNumberOfActiveHosts(solution));
-            solutionNumberOfMigrationMap.put(datacenterSolutionEntry, getMigrationMapOfSolution(solution).size());
             solutionTotalCost.put(datacenterSolutionEntry, getTotalCost(solutionTotalIncreaseInPowerConsumption, datacenter));
         }
 
@@ -178,14 +141,10 @@ public class KneePointSelectionPolicy {
 
                 if (solutionIncreaseInPowerConsumptionMap.get(entryTarget) <= solutionIncreaseInPowerConsumptionMap.get(entrySource) &&
                     solutionCarbonFootprintMap.get(entryTarget) <= solutionCarbonFootprintMap.get(entrySource) &&
-                    solutionNumberOfActiveHostsMap.get(entryTarget) <= solutionNumberOfActiveHostsMap.get(entrySource) &&
-                    solutionNumberOfMigrationMap.get(entryTarget) <= solutionNumberOfMigrationMap.get(entrySource) &&
                     solutionTotalCost.get(entryTarget) <= solutionTotalCost.get(entrySource)) {
 
                     if (solutionIncreaseInPowerConsumptionMap.get(entryTarget) < solutionIncreaseInPowerConsumptionMap.get(entrySource) ||
                         solutionCarbonFootprintMap.get(entryTarget) < solutionCarbonFootprintMap.get(entrySource) ||
-                        solutionNumberOfActiveHostsMap.get(entryTarget) < solutionNumberOfActiveHostsMap.get(entrySource) ||
-                        solutionNumberOfMigrationMap.get(entryTarget) < solutionNumberOfMigrationMap.get(entrySource) ||
                         solutionTotalCost.get(entryTarget) < solutionTotalCost.get(entrySource)) {
                         //The target solution dominates the source solution
                         continue SourceLoop;

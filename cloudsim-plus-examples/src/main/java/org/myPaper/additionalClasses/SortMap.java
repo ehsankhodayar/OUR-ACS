@@ -9,6 +9,8 @@ public class SortMap {
         // 1. Convert Map to List of Map
         List<Map.Entry<k, v>> list = new ArrayList<>(unsortedMap.entrySet());
 
+        Collections.shuffle(list);
+
         // 2. Sort list with Collections.sort(), provide a custom Comparator
         //    Try switch the o1 o2 position for a different order
         list.sort(Map.Entry.comparingByValue());

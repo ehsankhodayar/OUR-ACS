@@ -608,21 +608,20 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
                 .collect(Collectors.toList());
 
             loopHostIteration:
-            for (Host loopHost : loopSortedHostList) {
+            for (Host hostInLoop : loopSortedHostList) {
                 //Sort host's migrating out Vm list according to Vm's number of Pes
-                List<Vm> loopHostSortedVmList = hostMigratingOutVmMap.get(loopHost).parallelStream()
+                List<Vm> loopHostSortedVmList = hostMigratingOutVmMap.get(hostInLoop).parallelStream()
                     .sorted(Comparator.comparing(Vm::getNumberOfPes))
                     .collect(Collectors.toList());
 
                 List<Host> currentSolutionDestinationHostList = migrationMap.values().stream()
-                    .filter(host -> loopHost != host)
                     .distinct()
                     .collect(Collectors.toList());
 
                 List<Host> currentSolutionSourceHostList = migrationMap.keySet().stream()
                     .map(Vm::getHost)
-                    .filter(host -> loopHost != host)
                     .filter(host -> !currentSolutionDestinationHostList.contains(host))
+                    .distinct()
                     .collect(Collectors.toList());
 
                 List<Host> concatList = new ArrayList<>();
@@ -631,20 +630,54 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
 
                 //List of sorted hosts at current migration map
                 List<Host> currentSolutionTotalHostList = concatList.parallelStream()
-                    .distinct()
+                    .sorted(Comparator.comparing(Host::getCpuMipsUtilization).reversed())
                     .collect(Collectors.toList());
 
                 //List of sorted hosts that has not been used in the current migration map yet
                 List<Host> notTriedHostList = getHostList().parallelStream()
                     .filter(host -> !currentSolutionTotalHostList.contains(host))
-                    .sorted(Comparator.comparing(Host::getCpuMipsUtilization))
+                    .filter(host -> host.getFreePesNumber() > 0)
+                    .sorted(Comparator.comparing(Host::getCpuMipsUtilization).reversed())
                     .collect(Collectors.toList());
 
                 loopVmIteration:
                 for (Vm vmInLoop : loopHostSortedVmList) {
+                    //Try the hosts that exist in the current migration map
+                    for (Host host : currentSolutionTotalHostList) {
+
+                        //Check if the Vm is going to be powered off
+                        boolean allVmsWillBeMigratedAndNoIncomingVm = host.getVmList().parallelStream()
+                            .allMatch(newMigrationMap::containsKey) && !newMigrationMap.containsValue(host);
+
+                        if (host == vmInLoop.getHost() || host.getFreePesNumber() == 0 || allVmsWillBeMigratedAndNoIncomingVm) {
+                            continue ;
+                        }
+
+                        //In order to avoid from other new loops, we do not consider the migrating of host's Vms
+                        //In other words, we consider the occupied space by Vms which are chosen from this host for migrating out to another host
+                        List<Vm> newVmList = getHostNewVmList(host, newMigrationMap, false);
+
+                        if (isHostSuitableForVm(vmInLoop, host, newVmList)) {
+                            newVmList.add(vmInLoop);
+
+                            if (isHostOverloaded(host, newVmList)) {
+                                continue ;
+                            }
+
+                            newMigrationMap.replace(vmInLoop, host);
+                            currentLoopMap.replace(vmInLoop, host);
+
+                            if (isMigrationMapFeasible(currentLoopMap)) {
+                                break loopHostIteration;
+                            } else {
+                                continue loopVmIteration;
+                            }
+                        }
+                    }
+
                     //Try the hosts that do not exist in the current migration map
-                    for (Host host : notTriedHostList) {
-                        List<Vm> newVmList = getHostNewVmList(host, newMigrationMap);
+                    /*for (Host host : notTriedHostList) {
+                        List<Vm> newVmList = getHostNewVmList(host, newMigrationMap, true);
 
                         if (isHostSuitableForVm(vmInLoop, host, newVmList)) {
                             newVmList.add(vmInLoop);
@@ -662,7 +695,7 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
                                 continue loopVmIteration;
                             }
                         }
-                    }
+                    }*/
                 }
             }
         }
@@ -679,12 +712,13 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
      *
      * @param host     the host
      * @param solution the solution map
+     * @param considerVmsMigratingOut set true if current temporary list of migrating out Vms must be considered (do not consider their occupied space)
      * @return the new Vm list
      */
-    private List<Vm> getHostNewVmList(final Host host, final Map<Vm, Host> solution) {
+    private List<Vm> getHostNewVmList(final Host host, final Map<Vm, Host> solution, boolean considerVmsMigratingOut) {
 
         List<Vm> vmList = host.getVmList().parallelStream()
-            .filter(vm -> !solution.containsKey(vm))
+            .filter(vm -> !solution.containsKey(vm) || !considerVmsMigratingOut)
             .collect(Collectors.toList());
 
         List<Vm> hostTemporaryVmList = solution.entrySet().parallelStream()

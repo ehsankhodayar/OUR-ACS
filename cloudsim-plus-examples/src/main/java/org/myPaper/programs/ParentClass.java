@@ -25,7 +25,7 @@ import java.util.function.BiFunction;
 
 public abstract class ParentClass {
     //SimulatorConfigurations
-    protected static final int SIMULATION_TIME = 43200; //5 days
+    protected static final int SIMULATION_TIME = 432000; //5 days
     protected static final LocalTime SIMULATION_START_TIME = LocalTime.now();
     protected static CloudSim simulation;
     protected final String OUTPUT_DIRECTORY;
@@ -39,7 +39,7 @@ public abstract class ParentClass {
     //Datacenter Configurations
     protected final double SCHEDULING_INTERVAL = 100; //Every 100 seconds.
     protected final boolean LIVE_VM_MIGRATION;
-    protected final double OVERLOAD_AND_UNDERLOAD_MONITORING_INTERVAL = 300; //Every 10 minutes.
+    protected final double OVERLOAD_AND_UNDERLOAD_MONITORING_INTERVAL = 600; //Every 10 minutes.
     protected final double UNDERUTILIZATION_THRESHOLD = 0.3;
     protected final double OVERUTILIZATION_THRESHOLD = 0.9;
     //------------------------------------Datacenter1------------------------------------
@@ -98,8 +98,8 @@ public abstract class ParentClass {
     protected final double DC9_CARBON_TAX = 48 * 100; //Cents/Ton
 
     //Host Configurations
-    protected final int MAXIMUM_NUMBER_OF_HOSTS = 180; //The maximum number of hosts must be equal or greater than the number of host categories
-    protected final int IDLE_SHUTDOWN_DEADLINE = 60; //One minute
+    protected final int MAXIMUM_NUMBER_OF_HOSTS = 90; //The maximum number of hosts must be equal or greater than the number of host categories
+    protected final int IDLE_SHUTDOWN_DEADLINE = 150; //10 minutes
 
     //VM Configurations
     protected final double VM_DESTRUCTION_DELAY = 60; //one minute
@@ -110,8 +110,8 @@ public abstract class ParentClass {
     protected static List<Cloudlet> cloudletList;
     protected final String SWF_WORKLOAD_DIRECTORY = "workload/swf/METACENTRUM_Sublist.swf";
     protected final int UTILIZATION_UPDATE_SCHEDULING_INTERVAL = 300; //5 minutes
-    protected final int CLOUDLET_LENGTH = 35_000_000; //Million Instructions (MI)
-    protected final int MAXIMUM_NUMBER_OF_CLOUDLETS = 10000; //cloudlets will be submitted dynamically to the broker during the simulation time
+    protected final int CLOUDLET_LENGTH = 50_000_000; //Million Instructions (MI)
+    protected final int MAXIMUM_NUMBER_OF_CLOUDLETS = 2000; //cloudlets will be submitted dynamically to the broker during the simulation time
 
     public ParentClass(final String directory, final boolean cloudFederation, final boolean liveVmMigration) {
         if (directory == null || !Files.exists(Paths.get(directory))) {
@@ -301,7 +301,7 @@ public abstract class ParentClass {
     }
 
     protected void dynamicWorkloadSubmission(final double clock) {
-        if (clock - lastVmListSubmissionTime < VM_SUBMISSION_INTERVAL) {
+        if (clock - lastVmListSubmissionTime < VM_SUBMISSION_INTERVAL && clock > VM_SUBMISSION_INTERVAL) {
             return;
         }
 

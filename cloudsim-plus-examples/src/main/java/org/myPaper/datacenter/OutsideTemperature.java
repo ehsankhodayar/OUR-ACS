@@ -16,8 +16,9 @@ import java.util.TreeMap;
 
 public class OutsideTemperature {
     private final Datacenter DATACENTER;
-    private Map<Integer, Double> outsideTemperatureMap;
+    private final Map<Integer, Double> outsideTemperatureMap;
     private Calendar csvFileStartTime = null;
+    private long maximumAllowedTime;
 
     public OutsideTemperature(Datacenter datacenter) {
         DATACENTER = datacenter;
@@ -27,16 +28,20 @@ public class OutsideTemperature {
     public void loadOutsideTemperature(String weatherDataset) throws ParseException, FileNotFoundException {
         CSVReader csvFile = new CSVReader(new FileReader(ResourceLoader.getResourcePath(OutsideTemperature.class, weatherDataset)));
         int line = 0;
+        long lastTime = 0;
         for (String[] nextLine : csvFile) {
             if (line > 0) {
                 if (csvFileStartTime == null) {
                     setCsvFileStartTime(nextLine[0]);
                 }
                 long seconds = convertLocalTimeToSeconds(nextLine[0]);
+                lastTime = seconds;
                 outsideTemperatureMap.put((int) seconds, Double.parseDouble(nextLine[1]));
             }
             line++;
         }
+
+        maximumAllowedTime = lastTime;
     }
 
     private void setCsvFileStartTime(final String firstTimeDate) throws ParseException {
@@ -71,6 +76,11 @@ public class OutsideTemperature {
      */
     public double getOutsideTemperature(double time) {
         int simulationTime = (int) getDatacenter().getLocalTime(time);
+
+        if (simulationTime > maximumAllowedTime) {
+            return (double) outsideTemperatureMap.values().toArray()[outsideTemperatureMap.size() - 1];
+        }
+
         double outsideTemperature = Double.NaN;
         for (Map.Entry<Integer, Double> entry : outsideTemperatureMap.entrySet()) {
             if (simulationTime <= entry.getKey()) {
@@ -78,6 +88,11 @@ public class OutsideTemperature {
                 break;
             }
         }
+
+        if (Double.isNaN(outsideTemperature)) {
+            throw new IllegalStateException("The outside temperature could not be NaN!");
+        }
+
         return outsideTemperature;
     }
 

@@ -80,7 +80,7 @@ public class MainClass {
             throw new IllegalStateException("The program enum could not be null!");
         }
 
-        boolean cloudFederation = askYesNoQuestion("Do need the cloud federation?");
+        boolean cloudFederation = askYesNoQuestion("Do you need the cloud federation?");
 
         switch (program) {
             case BFD:
@@ -96,11 +96,11 @@ public class MainClass {
                 new Liu2016Program(directory, cloudFederation);
                 break;
             case UACS:
-                boolean vmMigration = askYesNoQuestion("Do need live Vm migration (Vm consolidation)?");
+                boolean vmMigration = askYesNoQuestion("Do you need live Vm migration (Vm consolidation)?");
                 new Liu2017Program(directory, cloudFederation, vmMigration);
                 break;
             case OUR_ACS:
-                vmMigration = askYesNoQuestion("Do need live Vm migration (Vm consolidation)?");
+                vmMigration = askYesNoQuestion("Do you need live Vm migration (Vm consolidation)?");
                 new OurAcsProgram(directory, cloudFederation, vmMigration);
                 break;
             default:

@@ -85,7 +85,8 @@ public class PheromoneInformationBetweenVmHostPairs {
 
         hostList.forEach(host -> {
             if (!HOST_PHEROMONE_MAP.containsKey(host)) {
-                HOST_PHEROMONE_MAP.put(host, INITIAL_PHEROMONE_VALUE);
+                boolean selfHost = getVm().isCreated() && getVm().getHost() == host;
+                HOST_PHEROMONE_MAP.put(host, selfHost ? INITIAL_PHEROMONE_VALUE * 2 : INITIAL_PHEROMONE_VALUE);
             }
         });
     }

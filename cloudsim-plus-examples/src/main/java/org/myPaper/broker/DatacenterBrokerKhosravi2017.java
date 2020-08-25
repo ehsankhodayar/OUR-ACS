@@ -121,7 +121,7 @@ public class DatacenterBrokerKhosravi2017 extends DatacenterBrokerMain {
     }
 
     private Datacenter runKhosraviAlgorithm(final Vm vm, List<Datacenter> allowedDatacenterList) {
-        final double vmHoldingTime = 3600; //1 hour
+        final double vmHoldingTime = 1;
         Map<Datacenter, Double> aggregatedDatacenterListMap = new HashMap<>();
 
         for (Datacenter datacenter : allowedDatacenterList) {
@@ -140,18 +140,16 @@ public class DatacenterBrokerKhosravi2017 extends DatacenterBrokerMain {
         List<Datacenter> sortedDatacenterList = new ArrayList<>(SortMap.sortByValue(aggregatedDatacenterListMap, true).keySet());
 
         for (Datacenter datacenter : sortedDatacenterList) {
-            Map<Host, Double> aggregatedHostListMap = new LinkedHashMap<>();
+            Map<Host, Double> aggregatedHostListMap = new HashMap<>();
 
             List<Host> allowedHostList = new ArrayList<>(getAllowedHostList(datacenter));
             Collections.shuffle(allowedHostList);
 
             for (Host host : allowedHostList) {
                 if (host.isSuitableForVm(vm)) {
-                    final double currentPowerConsumption = host.getPowerModel().getPower();
-                    final double futureCpuUtilization =
-                        ((double) vm.getNumberOfPes() / (double) host.getNumberOfPes()) + host.getCpuPercentUtilization();
-                    final double futurePowerConsumption =
-                        host.getPowerModel().getPower(futureCpuUtilization);
+                    final double currentPowerConsumption = host.isActive() ? host.getPowerModel().getPower() : 10;
+                    final double futureCpuUtilization = (vm.getTotalMipsCapacity() + host.getCpuMipsUtilization()) / host.getTotalMipsCapacity();
+                    final double futurePowerConsumption = host.getPowerModel().getPower(futureCpuUtilization);
                     final double addedPowerConsumption = futurePowerConsumption - currentPowerConsumption;
                     aggregatedHostListMap.put(host, addedPowerConsumption);
                 }

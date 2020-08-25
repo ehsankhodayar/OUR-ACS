@@ -4,6 +4,7 @@ import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicy;
 import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicySimple;
 import org.cloudbus.cloudsim.core.CloudSimTags;
 import org.cloudbus.cloudsim.core.Simulation;
+import org.cloudbus.cloudsim.datacenters.DatacenterPowerSupply;
 import org.cloudbus.cloudsim.datacenters.DatacenterSimple;
 import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.vms.Vm;
@@ -146,6 +147,10 @@ public class DatacenterPro extends DatacenterSimple {
      */
     public void enableHostOverUtilizedHistoryRecorder(final boolean activate) {
         if (activate) {
+            if (getPowerSupply() == DatacenterPowerSupply.NULL) {
+                throw new IllegalStateException("The Datacenter power supply is not enabled!");
+            }
+
             hostOverUtilizedStateHistory = true;
         } else {
             hostOverUtilizedStateHistory = false;
@@ -225,7 +230,7 @@ public class DatacenterPro extends DatacenterSimple {
      * @see #loadWeatherDataset(String)
      */
     public double getOutsideTemperature() {
-        return requireNonNull(outsideTemperature.getOutsideTemperature());
+        return outsideTemperature.getOutsideTemperature();
     }
 
     /**
@@ -295,30 +300,6 @@ public class DatacenterPro extends DatacenterSimple {
     }
 
     /**
-     * Gets the maximum possible cost in Dollar. considering the maximum datacenter's IT and overhead
-     * power consumption and also the current datacenter's outside temperature.
-     *
-     * @return the maximum possible cost in Dollar
-     */
-    public double getMaximumPossibleCost() {
-        double maximumEnergy = getPowerSupplyOverheadPowerAware().getMaximumTotalPowerConsumption() / 3600;
-
-        return getTotalEnergyCost(maximumEnergy) + getTotalCarbonFootprint(maximumEnergy);
-    }
-
-    /**
-     * Gets the minimum possible cost in Dollar. considering the minimum datacenter's IT and overhead
-     * power consumption and also the current datacenter's outside temperature.
-     *
-     * @return the minimum possible cost in Dollar
-     */
-    public double getMinimumPossibleCost() {
-        double minimumEnergy = getPowerSupplyOverheadPowerAware().getMinimumItPowerConsumption() / 3600;
-
-        return getTotalEnergyCost(minimumEnergy) + getTotalCarbonFootprint(minimumEnergy);
-    }
-
-    /**
      * Gets the total carbon tax in cent base on the given amount of energy consumption in Watt-h.
      * Note that the carbon tax and carbon footprint rate must be already set up by {@link #setCarbonTaxAndFootprintRateModel(double, double)}
      * before using it.
@@ -342,28 +323,6 @@ public class DatacenterPro extends DatacenterSimple {
      */
     public double getTotalCarbonFootprint(double energyConsumption) {
         return carbonRateAndTaxModel.getCarbonFootprintRate(energyConsumption);
-    }
-
-    /**
-     * Gets the maximum amount of possible carbon footprint at the moment in ton. considering the maximum datacenter's IT and overhead
-     * power consumption and also the current datacenter's outside temperature.
-     *
-     * @return the maximum amount of carbon footprint which is possible at the moment in ton.
-     */
-    public double getMaximumPossibleCarbonFootprint() {
-        double maximumPossibleEnergyConsumption = getPowerSupplyOverheadPowerAware().getMaximumTotalPowerConsumption() / 3600;
-        return carbonRateAndTaxModel.getCarbonFootprintRate(maximumPossibleEnergyConsumption);
-    }
-
-    /**
-     * Gets the minimum amount of possible carbon footprint at the moment in ton. considering the minimum datacenter's IT and overhead
-     * power consumption and also the current datacenter's outside temperature.
-     *
-     * @return the minimum amount of carbon footprint which is possible at the moment in ton.
-     */
-    public double getMinimumPossibleCarbonFootprint() {
-        double minimumPossibleEnergyConsumption = getPowerSupplyOverheadPowerAware().getMinimumTotalPowerConsumption() / 3600;
-        return carbonRateAndTaxModel.getCarbonFootprintRate(minimumPossibleEnergyConsumption);
     }
 
     /**
@@ -480,16 +439,16 @@ public class DatacenterPro extends DatacenterSimple {
 
         final int numberOfCreatedVms = getCreatedVmList().size();
 
-        return vmNumberOfVmMigrationsMap.entrySet().stream()
-            .mapToDouble(entry ->
-                (entry.getKey().getTotalMipsCapacity() * entry.getKey().getHost().getVmScheduler().getVmMigrationCpuOverhead() /
-                    entry.getKey().getTotalMipsCapacity()) * entry.getValue())
+        return vmNumberOfVmMigrationsMap.keySet().stream()
+            .mapToDouble(integer -> (integer.getTotalMipsCapacity() * integer.getHost().getVmScheduler().getVmMigrationCpuOverhead() /
+                integer.getTotalMipsCapacity()))
             .sum() / numberOfCreatedVms;
     }
 
     /**
      * Gets the SLA violation time per active hosts (SLATAH). Note that the {@link #enableHostOverUtilizedHistoryRecorder(boolean)}
-     * must be enabled before using this method.
+     * must be enabled before using this method. The datacenter power supply needs to be enable in order to be able to keep the
+     * previous utilization of each hosts.
      *
      * @return the SLATAH
      */
@@ -662,6 +621,7 @@ public class DatacenterPro extends DatacenterSimple {
         if (getSimulation().clock() - getLastProcessTime() > getSchedulingInterval()) {
             if (getVmExecutionList().isEmpty() && getSleepHostList().size() != getHostList().size()) {
                 getHostList().parallelStream()
+                    .filter(host -> host.isIdleEnough(host.getIdleShutdownDeadline()))
                     .forEach(host -> host.setActive(false));
             }
         }
@@ -705,6 +665,7 @@ public class DatacenterPro extends DatacenterSimple {
         }
 
         return hostCpuUtilizationHistorySimpleEntryMap.values().parallelStream()
+            .filter(hostCpuUtilizationHistorySimpleEntry -> hostCpuUtilizationHistorySimpleEntry.getHost().getTotalUpTime() > 0)
             .mapToDouble(HostCpuUtilizationHistorySimpleEntry::getAverageCpuUtilization)
             .average()
             .orElse(0);

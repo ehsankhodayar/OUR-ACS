@@ -68,7 +68,7 @@ public class DatacenterPowerSupplyOverheadPowerAware extends DatacenterPowerSupp
         double newOverhead = getOverheadPowerConsumption(power, IT_PowerConsumption);
         double extraOverhead = newOverhead - currentOverhead;
 
-        if (Double.isNaN(IT_PowerConsumption) || Double.isNaN(newOverhead)) {
+        if (Double.isNaN(IT_PowerConsumption) || Double.isNaN(extraOverhead)) {
             throw new IllegalStateException("The IT power consumption or overhead power consumption can not be NaN!");
         }
 
@@ -148,56 +148,17 @@ public class DatacenterPowerSupplyOverheadPowerAware extends DatacenterPowerSupp
         }
 
         double ITLoad = getITLoad(ITPowerConsumption, addedPowerConsumption);
-        DatacenterPro datacenterCustomized = (DatacenterPro) datacenter;
-        double outsideTemperature = datacenterCustomized.getOutsideTemperature();
-        double dynamicPUE = 1 + ((0.2 + 0.01 * ITLoad + 0.01 * ITLoad * outsideTemperature) / ITLoad);
+        DatacenterPro datacenterPro = (DatacenterPro) datacenter;
+        double outsideTemperature = datacenterPro.getOutsideTemperature();
 
-        return dynamicPUE;
-    }
-
-    /**
-     * Gets the datacenter minimum IT power consumption in Watt-Sec.
-     *
-     * @return the minimum power consumption
-     * @see #getMinimumTotalPowerConsumption()
-     */
-    public double getMinimumItPowerConsumption() {
-        return MINIMUM_IT_POWER_CONSUMPTION;
-    }
-
-    /**
-     * Gets the datacenetr maximum IT power consumption in Watt-Sec
-     *
-     * @return the maximum power consumption
-     * @see #getMaximumTotalPowerConsumption()
-     */
-    public double getMaximumItPowerConsumption() {
-        return MAXIMUM_IT_POWER_CONSUMPTION;
-    }
-
-    /**
-     * Gets the minimum power consumption of datacenter in Watt-Sec considering the minimum IT power consumption and the the minimum overhead
-     * power according to the minimum IT power consumption and dynamic PUE.
-     *
-     * @return the minimum power consumption in Watt-Sec considering the overhead power consumption
-     * @see #getMinimumItPowerConsumption()
-     */
-    public double getMinimumTotalPowerConsumption() {
-        return getMinimumItPowerConsumption() + getOverheadPowerConsumption(getMinimumItPowerConsumption(), 0);
-    }
-
-    /**
-     * Gets the maximum power consumption of datacenter in Watt-Sec considering the maximum IT power consumption and the the maximum overhead
-     * power according to the maximum IT power consumption and dynamic PUE.
-     *
-     * @return the maximum power consumption in Watt-Sec considering the overhead power consumption
-     * @see #getMaximumItPowerConsumption()
-     */
-    public double getMaximumTotalPowerConsumption() {
-        return getMaximumItPowerConsumption() + getOverheadPowerConsumption(getMaximumItPowerConsumption(), 0);
+        return 1 + ((0.2 + 0.01 * ITLoad + 0.01 * ITLoad * outsideTemperature) / ITLoad);
     }
 
     public double getAveragePueDuringSimulation() {
+        if (numberOfPueSamples == 0) {
+            return 0;
+        }
+
         return sumPUE / numberOfPueSamples;
     }
 }
