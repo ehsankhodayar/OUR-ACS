@@ -25,7 +25,7 @@ import java.util.function.BiFunction;
 
 public abstract class ParentClass {
     //SimulatorConfigurations
-    protected static final int SIMULATION_TIME = 432000; //5 days
+    protected static final int SIMULATION_TIME = 86400; //5 days
     protected static final LocalTime SIMULATION_START_TIME = LocalTime.now();
     protected static CloudSim simulation;
     protected final String OUTPUT_DIRECTORY;

@@ -511,23 +511,25 @@ public class OurAcs {
      * @return the Vm heuristic for the given host
      */
     private double getHostHeuristic(final Vm vm, final Host host, final List<Vm> hostTemporaryVmList) {
-        List<Vm> hostTemporaryVmListCopy = new ArrayList<>(hostTemporaryVmList);
-        hostTemporaryVmListCopy.add(vm);
+        List<Vm> hostTemporaryVmListNew = new ArrayList<>(hostTemporaryVmList);
+        hostTemporaryVmListNew.add(vm);
 
-        final double cpuWastage = getHostTotalMipsWastage(host, hostTemporaryVmListCopy);
-        final double memoryWastage = getHostTotalMemoryWastage(host, hostTemporaryVmListCopy);
+        final double cpuWastage = getHostTotalMipsWastage(host, hostTemporaryVmListNew);
+        final double memoryWastage = getHostTotalMemoryWastage(host, hostTemporaryVmListNew);
 
         if (cpuWastage > 1 || memoryWastage > 1 || cpuWastage < 0 || memoryWastage < 0) {
             throwIllegalState("The CPU or Memory wastage must be between >= 0 an <= 1", "getHostHeuristic");
         }
 
-        final double hostFutureCpuUtilization = getHostMipsUtilization(host, hostTemporaryVmListCopy) / host.getTotalMipsCapacity();
-        final double currentPowerConsumption = host.isActive() ? host.getPowerModel().getPower(host.getCpuPercentUtilization()) : 10;
+        final double hostCurrentCpuUtilization = getHostMipsUtilization(host, hostTemporaryVmList) / host.getTotalMipsCapacity();
+        final double hostFutureCpuUtilization = getHostMipsUtilization(host, hostTemporaryVmListNew) / host.getTotalMipsCapacity();
+        final double currentPowerConsumption = host.getPowerModel().getPower(hostCurrentCpuUtilization);
         final double newPowerConsumption = host.getPowerModel().getPower(hostFutureCpuUtilization);
         final double increaseInPowerConsumption = newPowerConsumption - currentPowerConsumption;
         double normalizedPowerConsumption =
-            NormalizeZeroOne.normalize(increaseInPowerConsumption, host.getPowerModel().getMaxPower() - currentPowerConsumption, 0);
-        final int priority = hostTemporaryVmListCopy.size();
+            NormalizeZeroOne
+                .normalize(increaseInPowerConsumption, host.getPowerModel().getMaxPower() - currentPowerConsumption, 0);
+        final int priority = hostTemporaryVmListNew.size();
 
         return ((w * (1 / (normalizedPowerConsumption + 1))) + ((1 - w) * (1 / (cpuWastage + memoryWastage + 1)))) * priority;
     }
