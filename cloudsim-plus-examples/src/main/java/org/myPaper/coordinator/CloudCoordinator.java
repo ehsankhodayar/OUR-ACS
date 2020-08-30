@@ -23,7 +23,7 @@ public class CloudCoordinator {
      */
     private final DatacenterBroker CLOUD_BROKER;
 
-    private final double UNDERUTILIZATION_THRESHOLD;
+    private final double OVERUTILIZATION_THRESHOLD;
 
     private final boolean SHARE_SLEEP_HOSTS;
 
@@ -41,13 +41,13 @@ public class CloudCoordinator {
                             final DatacenterBroker cloudBroker,
                             final List<Datacenter> datacenterList,
                             final List<DatacenterBroker> allowedBrokerList,
-                            final double underutilizationThreshold,
+                            final double overutilizationThreshold,
                             final boolean shareSleepHosts) {
         PROVIDER_NAME = providerName;
         CLOUD_BROKER = cloudBroker;
         federatedDatacenterList = connectDatacentersToCloudCoordinator(datacenterList);
         this.allowedBrokerList = connectAllowedBrokersToCloudCoordinator(verifyAllowedBrokers(cloudBroker, allowedBrokerList));
-        UNDERUTILIZATION_THRESHOLD = verifyUnderutilizationThreshold(underutilizationThreshold);
+        OVERUTILIZATION_THRESHOLD = verifyOverutilizationThreshold(overutilizationThreshold);
         SHARE_SLEEP_HOSTS = shareSleepHosts;
     }
 
@@ -69,7 +69,7 @@ public class CloudCoordinator {
         List<Host> sharedInfrastructures = new ArrayList<>();
 
         datacenter.getHostList().forEach(host -> {
-            if ((!host.isActive() && SHARE_SLEEP_HOSTS) || host.getCpuPercentUtilization() <= UNDERUTILIZATION_THRESHOLD) {
+            if ((!host.isActive() && SHARE_SLEEP_HOSTS) || host.getCpuPercentUtilization() <= OVERUTILIZATION_THRESHOLD) {
                 if (host.getFreePesNumber() != 0 && host.getRam().getAvailableResource() != 0) {
                     sharedInfrastructures.add(host);
                 }
@@ -111,9 +111,9 @@ public class CloudCoordinator {
         return allowedBrokerList;
     }
 
-    private double verifyUnderutilizationThreshold(double threshold) {
+    private double verifyOverutilizationThreshold(double threshold) {
         if (threshold > 1 || threshold < 0) {
-            throw new IllegalStateException("Underutilization threshold could not be less than zero and greater than one!");
+            throw new IllegalStateException("Overutilization threshold could not be less than zero and greater than one!");
         }
 
         return threshold;

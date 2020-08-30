@@ -25,7 +25,7 @@ import java.util.function.BiFunction;
 
 public abstract class ParentClass {
     //SimulatorConfigurations
-    protected static final int SIMULATION_TIME = 86400; //5 days
+    protected static final int SIMULATION_TIME = 432000; //5 days
     protected static final LocalTime SIMULATION_START_TIME = LocalTime.now();
     protected static CloudSim simulation;
     protected final String OUTPUT_DIRECTORY;
@@ -111,7 +111,7 @@ public abstract class ParentClass {
     protected final String SWF_WORKLOAD_DIRECTORY = "workload/swf/METACENTRUM_Sublist.swf";
     protected final int UTILIZATION_UPDATE_SCHEDULING_INTERVAL = 300; //5 minutes
     protected final int CLOUDLET_LENGTH = 50_000_000; //Million Instructions (MI)
-    protected final int MAXIMUM_NUMBER_OF_CLOUDLETS = 2000; //cloudlets will be submitted dynamically to the broker during the simulation time
+    protected final int MAXIMUM_NUMBER_OF_CLOUDLETS = 8_000; //cloudlets will be submitted dynamically to the broker during the simulation time
 
     public ParentClass(final String directory, final boolean cloudFederation, final boolean liveVmMigration) {
         if (directory == null || !Files.exists(Paths.get(directory))) {
@@ -378,21 +378,24 @@ public abstract class ParentClass {
             broker1,
             Arrays.asList(datacenter1, datacenter2, datacenter3, datacenter4),
             CLOUD_FEDERATION ? Arrays.asList(broker2, broker3) : new ArrayList<>(),
-            UNDERUTILIZATION_THRESHOLD, true);
+            OVERUTILIZATION_THRESHOLD,
+            true);
 
         //Provider2 Cloud Coordinator
         new CloudCoordinator("Provider 2",
             broker2,
             Arrays.asList(datacenter5, datacenter6, datacenter7),
             CLOUD_FEDERATION ? Arrays.asList(broker1, broker3) : new ArrayList<>(),
-            UNDERUTILIZATION_THRESHOLD, true);
+            OVERUTILIZATION_THRESHOLD,
+            true);
 
         //Provider3 Cloud Coordinator
         new CloudCoordinator("Provider 3",
             broker3,
             Arrays.asList(datacenter8, datacenter9),
             CLOUD_FEDERATION ? Arrays.asList(broker1, broker2) : new ArrayList<>(),
-            UNDERUTILIZATION_THRESHOLD, true);
+            OVERUTILIZATION_THRESHOLD,
+            true);
     }
 
     protected void generateExperimentalResults() {
