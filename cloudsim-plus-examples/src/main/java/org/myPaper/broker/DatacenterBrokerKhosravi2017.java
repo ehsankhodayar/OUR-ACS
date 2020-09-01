@@ -45,8 +45,7 @@ public class DatacenterBrokerKhosravi2017 extends DatacenterBrokerMain {
         }
 
         //Look for suitable resources inside the datacenters of current cloud provider
-        LOGGER.info("{}: {} is trying to find suitable resources for allocating to the new Vm creation requests inside the datacenters of the " +
-                "current cloud provider.",
+        LOGGER.info("{}: {} is trying to find suitable resources for allocating to the new Vm creation requests inside the available datacenters.",
             getSimulation().clockStr(),
             this);
 

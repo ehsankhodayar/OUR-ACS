@@ -111,7 +111,7 @@ public abstract class ParentClass {
     protected final String SWF_WORKLOAD_DIRECTORY = "workload/swf/METACENTRUM_Sublist.swf";
     protected final int UTILIZATION_UPDATE_SCHEDULING_INTERVAL = 300; //5 minutes
     protected final int CLOUDLET_LENGTH = 50_000_000; //Million Instructions (MI)
-    protected final int MAXIMUM_NUMBER_OF_CLOUDLETS = 4000; //cloudlets will be submitted dynamically to the broker during the simulation time
+    protected final int MAXIMUM_NUMBER_OF_CLOUDLETS = 14000; //cloudlets will be submitted dynamically to the broker during the simulation time
 
     public ParentClass(final String directory, final boolean cloudFederation, final boolean liveVmMigration) {
         if (directory == null || !Files.exists(Paths.get(directory))) {

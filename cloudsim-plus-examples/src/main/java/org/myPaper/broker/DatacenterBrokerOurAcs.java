@@ -40,30 +40,13 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
             getSimulation().clockStr(),
             getName());
 
-        List<DatacenterSolutionEntry> datacenterSolutionEntryList = getDatacenterList().parallelStream()
+        List<DatacenterSolutionEntry> datacenterSolutionEntryList = getProviderDatacenters().parallelStream()
             .filter(datacenter -> !getAllowedHostList(datacenter).isEmpty())
             .map(datacenter -> new DatacenterSolutionEntry(datacenter, getVmWaitingList(), getAllowedHostList(datacenter)))
             .filter(datacenterSolutionEntry -> !datacenterSolutionEntry.getSolution().isEmpty())
             .collect(Collectors.toList());
 
-        if (!datacenterSolutionEntryList.isEmpty()) {
-            LOGGER.info("{}: {} has found some suitable resources for allocating to the new Vm creation requests inside the datacenters of the " +
-                    "current cloud provider.",
-                getSimulation().clockStr(),
-                getName());
-
-            Map<Vm, Host> solution = selectKneePoint(datacenterSolutionEntryList, getVmWaitingList());
-//            Map<Vm, Host> solution = selectMinimumEnergyConsumption(datacenterSolutionEntryList, getVmWaitingList());
-            performSolution(solution, isFallbackDatacenter);
-
-            return true;
-        }else {
-            failVms(getVmWaitingList());
-
-            return false;
-        }
-
-        /*if (datacenterSolutionEntryList.isEmpty()) {
+        if (datacenterSolutionEntryList.isEmpty()) {
             LOGGER.warn("{}: {} could not find any suitable resources for allocating to the new Vm creation requests inside the datacenters " +
                     "of the current cloud provider!",
                 getSimulation().clockStr(),
@@ -119,7 +102,7 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
             performSolution(solution, isFallbackDatacenter);
 
             return true;
-        }*/
+        }
     }
 
     @Override
