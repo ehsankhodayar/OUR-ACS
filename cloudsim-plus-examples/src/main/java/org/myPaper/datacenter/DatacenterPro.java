@@ -416,9 +416,17 @@ public class DatacenterPro extends DatacenterSimple {
      * @return
      */
     public List<Vm> getCreatedVmList() {
-        return getCloudCoordinator().getCloudBroker().getVmCreatedList().stream()
+        List<Vm> totalVmList = getCloudCoordinator().getCloudBroker().getVmCreatedList().stream()
             .filter(vm -> vm.getHost().getDatacenter() == this)
             .collect(Collectors.toList());
+
+        List<Vm> federatedVmList = getCloudCoordinator().getExternalBrokerList().stream()
+            .flatMap(datacenterBroker -> datacenterBroker.getVmCreatedList().stream())
+            .filter(vm -> vm.getHost().getDatacenter() == this).collect(Collectors.toList());
+
+        totalVmList.addAll(federatedVmList);
+
+        return totalVmList;
     }
 
     public List<Vm> getVmExecutionList() {

@@ -48,51 +48,17 @@ public class DatacenterBrokerKhosravi2017 extends DatacenterBrokerMain {
         LOGGER.info("{}: {} is trying to find suitable resources for allocating to the new Vm creation requests inside the datacenters of the " +
                 "current cloud provider.",
             getSimulation().clockStr(),
-            getName());
+            this);
 
-        Datacenter datacenter = runKhosraviAlgorithm(vm, getProviderDatacenters());
+        Datacenter datacenter = runKhosraviAlgorithm(vm, getDatacenterList());
 
-        if (datacenter != Datacenter.NULL) {
-            LOGGER.info("{}: {} has found suitable resources for one of the new Vm creation requests inside the datacenters of the " +
-                    "current cloud provider.",
+        if (datacenter == Datacenter.NULL) {
+            LOGGER.warn("{}: {} could not find suitable resources for all the new Vm creation requests inside the available datacenters!",
                 getSimulation().clockStr(),
-                getName());
-
-            return datacenter;
-        }else {
-            LOGGER.warn("{}: {} could not find suitable resources for all the new Vm creation requests inside the datacenters " +
-                    "of the current cloud provider!",
-                getSimulation().clockStr(),
-                getName());
-
-            //Look for suitable resources inside the federated datacenters
-            List<Datacenter> federatedDcList = getFederatedDatacenters();
-
-
-            if (!federatedDcList.isEmpty()) {
-                LOGGER.info("{}: {} is trying to federate some of the new Vm creation requests.",
-                    getSimulation().clockStr(),
-                    getName());
-
-                Datacenter federatedDc = runKhosraviAlgorithm(vm, federatedDcList);
-
-                if ((federatedDc != Datacenter.NULL)) {
-                    LOGGER.info("{}: {} has found a suitable resource for a new Vm creation request inside " +
-                            "the federated environment.",
-                        getSimulation().clockStr(),
-                        getName());
-
-                    return federatedDc;
-                }else {
-                    LOGGER.warn("{}: {} could not find any suitable resource for one of the new Vm creation request " +
-                            "inside the federated environment!",
-                        getSimulation().clockStr(),
-                        getName());
-                }
-            }
+                this);
         }
 
-        return Datacenter.NULL;
+        return datacenter;
     }
 
     @Override
@@ -125,6 +91,10 @@ public class DatacenterBrokerKhosravi2017 extends DatacenterBrokerMain {
         Map<Datacenter, Double> aggregatedDatacenterListMap = new HashMap<>();
 
         for (Datacenter datacenter : allowedDatacenterList) {
+            if (getAllowedHostList(datacenter).isEmpty()) {
+                continue;
+            }
+
             final double avgVmUtil = getVmAverageCpuUtilization(vm, datacenter);
             final double vmPowerConsumption = vmHoldingTime * getAveragePowerConsumption(datacenter, avgVmUtil);
             final double vmOverheadPowerConsumption = vmPowerConsumption * (getDatacenterPro(datacenter).getDatacenterDynamicPUE(vmPowerConsumption) - 1);
@@ -197,7 +167,7 @@ public class DatacenterBrokerKhosravi2017 extends DatacenterBrokerMain {
      * @return the average VM utilization at the given datacenter
      */
     private double getVmAverageCpuUtilization(final Vm vm, final Datacenter datacenter) {
-        double avgVmUtil = vm.getNumberOfPes() / datacenter.getHostList().stream()
+        double avgVmUtil = vm.getNumberOfPes() / getAllowedHostList(datacenter).stream()
             .mapToDouble(Host::getNumberOfPes)
             .average()
             .orElseThrow(() -> new IllegalStateException("The calculation of average cpu utilization of the given VM is not possible!"));

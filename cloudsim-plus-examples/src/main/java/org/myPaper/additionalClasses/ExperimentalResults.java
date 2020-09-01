@@ -71,9 +71,10 @@ public class ExperimentalResults {
             .mapToInt(datacenterBroker -> getProviderDatacenterList(datacenterBroker).size())
             .sum();
 
-        int numberOfAllFederatedDcs =BROKERS.stream()
-            .mapToInt(datacenterBroker -> getProviderFederatedAccessDatacenterList(datacenterBroker).size())
-            .sum();
+        int numberOfAllFederatedDcs = (int) BROKERS.stream()
+            .flatMap(datacenterBroker -> getProviderFederatedAccessDatacenterList(datacenterBroker).stream())
+            .distinct()
+            .count();
 
         int numberOfSubmittedVmReqs = BROKERS.stream()
             .mapToInt(datacenterBroker ->
@@ -395,11 +396,10 @@ public class ExperimentalResults {
     }
 
     private List<Datacenter> getProviderFederatedAccessDatacenterList(final DatacenterBroker broker) {
-        List<Datacenter> providerDcList = getProviderDatacenterList(broker);
         DatacenterBrokerMain cloudBroker = (DatacenterBrokerMain) broker;
 
-        return cloudBroker.getDatacenterList().stream()
-            .filter(datacenter -> !providerDcList.contains(datacenter))
+        return cloudBroker.getCloudCoordinatorList().stream()
+            .flatMap(cloudCoordinator -> cloudCoordinator.getFederatedDatacenterList().stream())
             .collect(Collectors.toList());
     }
 }

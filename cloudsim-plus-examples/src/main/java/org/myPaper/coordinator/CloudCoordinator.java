@@ -69,7 +69,8 @@ public class CloudCoordinator {
         List<Host> sharedInfrastructures = new ArrayList<>();
 
         datacenter.getHostList().forEach(host -> {
-            if ((!host.isActive() && SHARE_SLEEP_HOSTS) || host.getCpuPercentUtilization() <= OVERUTILIZATION_THRESHOLD) {
+            if ((!host.isActive() && SHARE_SLEEP_HOSTS) ||
+                (host.getCpuPercentUtilization() <= OVERUTILIZATION_THRESHOLD && host.isActive())) {
                 if (host.getFreePesNumber() != 0 && host.getRam().getAvailableResource() != 0) {
                     sharedInfrastructures.add(host);
                 }
