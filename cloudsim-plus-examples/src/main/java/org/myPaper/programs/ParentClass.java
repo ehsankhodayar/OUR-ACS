@@ -111,7 +111,7 @@ public abstract class ParentClass {
     protected final String SWF_WORKLOAD_DIRECTORY = "workload/swf/METACENTRUM_Sublist.swf";
     protected final int UTILIZATION_UPDATE_SCHEDULING_INTERVAL = 300; //5 minutes
     protected final int CLOUDLET_LENGTH = 50_000_000; //Million Instructions (MI)
-    protected final int MAXIMUM_NUMBER_OF_CLOUDLETS = 14000; //cloudlets will be submitted dynamically to the broker during the simulation time
+    protected final int MAXIMUM_NUMBER_OF_CLOUDLETS = 14_000; //cloudlets will be submitted dynamically to the broker during the simulation time
 
     public ParentClass(final String directory, final boolean cloudFederation, final boolean liveVmMigration) {
         if (directory == null || !Files.exists(Paths.get(directory))) {
@@ -379,7 +379,7 @@ public abstract class ParentClass {
             Arrays.asList(datacenter1, datacenter2, datacenter3, datacenter4),
             CLOUD_FEDERATION ? Arrays.asList(broker2, broker3) : new ArrayList<>(),
             OVERUTILIZATION_THRESHOLD,
-            false);
+            true);
 
         //Provider2 Cloud Coordinator
         new CloudCoordinator("Provider 2",
@@ -387,7 +387,7 @@ public abstract class ParentClass {
             Arrays.asList(datacenter5, datacenter6, datacenter7),
             CLOUD_FEDERATION ? Arrays.asList(broker1, broker3) : new ArrayList<>(),
             OVERUTILIZATION_THRESHOLD,
-            false);
+            true);
 
         //Provider3 Cloud Coordinator
         new CloudCoordinator("Provider 3",
@@ -395,7 +395,7 @@ public abstract class ParentClass {
             Arrays.asList(datacenter8, datacenter9),
             CLOUD_FEDERATION ? Arrays.asList(broker1, broker2) : new ArrayList<>(),
             OVERUTILIZATION_THRESHOLD,
-            false);
+            true);
     }
 
     protected void generateExperimentalResults() {
