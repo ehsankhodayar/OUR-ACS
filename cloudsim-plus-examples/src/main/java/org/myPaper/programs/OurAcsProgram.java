@@ -9,8 +9,8 @@ import org.myPaper.datacenter.vmAllocationPolicies.VmAllocationPolicyMigrationSt
 import java.util.Arrays;
 
 public class OurAcsProgram extends ParentClass {
-    public OurAcsProgram(final String directory, final boolean cloudFederation, final boolean liveVmMigration) {
-        super(directory, cloudFederation, liveVmMigration);
+    public OurAcsProgram(final String directory, final boolean cloudFederation, final boolean liveVmMigration, final int workloadsNumber) {
+        super(directory, cloudFederation, liveVmMigration, workloadsNumber);
 
         runProgram();
     }

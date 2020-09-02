@@ -11,8 +11,8 @@ import java.util.Arrays;
 
 public class Liu2017Program extends ParentClass {
 
-    public Liu2017Program(final String directory, final boolean cloudFederation, final boolean liveVmMigration) {
-        super(directory, cloudFederation, liveVmMigration);
+    public Liu2017Program(final String directory, final boolean cloudFederation, final boolean liveVmMigration, final int workloadsNumber) {
+        super(directory, cloudFederation, liveVmMigration, workloadsNumber);
 
         runProgram();
     }

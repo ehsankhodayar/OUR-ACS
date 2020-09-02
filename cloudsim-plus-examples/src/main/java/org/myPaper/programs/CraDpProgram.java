@@ -7,8 +7,8 @@ import java.util.Arrays;
 
 public class CraDpProgram extends ParentClass {
 
-    public CraDpProgram(final String directory, final boolean cloudFederation) {
-        super(directory, cloudFederation, false);
+    public CraDpProgram(final String directory, final boolean cloudFederation, final int workloadsNumber) {
+        super(directory, cloudFederation, false, workloadsNumber);
 
         runProgram();
     }

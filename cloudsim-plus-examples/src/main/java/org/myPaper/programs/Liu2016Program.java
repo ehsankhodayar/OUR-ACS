@@ -11,8 +11,8 @@ import java.util.Arrays;
 
 public class Liu2016Program extends ParentClass {
 
-    public Liu2016Program(final String directory, final boolean cloudFederation) {
-        super(directory, cloudFederation, false);
+    public Liu2016Program(final String directory, final boolean cloudFederation, final int workloadsNumber) {
+        super(directory, cloudFederation, false, workloadsNumber);
 
         runProgram();
     }

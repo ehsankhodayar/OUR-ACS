@@ -8,8 +8,8 @@ import java.util.Collections;
 
 public class BFDProgram extends ParentClass {
 
-    public BFDProgram(final String directory, final boolean cloudFederation) {
-        super(directory, cloudFederation, false);
+    public BFDProgram(final String directory, final boolean cloudFederation, final int workloadsNumber) {
+        super(directory, cloudFederation, false, workloadsNumber);
 
         runProgram();
     }

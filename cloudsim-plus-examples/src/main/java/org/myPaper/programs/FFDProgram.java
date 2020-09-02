@@ -7,8 +7,8 @@ import java.util.*;
 
 public class FFDProgram extends ParentClass {
 
-    public FFDProgram(final String directory, final boolean cloudFederation) {
-        super(directory, cloudFederation, false);
+    public FFDProgram(final String directory, final boolean cloudFederation, final int workloadsNumber) {
+        super(directory, cloudFederation, false, workloadsNumber);
 
         runProgram();
     }

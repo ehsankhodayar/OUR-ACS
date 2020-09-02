@@ -12,6 +12,7 @@ public class MainClass {
     private static final Logger LOGGER = LoggerFactory.getLogger(MainClass.class.getSimpleName());
     private enum PROGRAM{BFD, FFD, CRA_DP, OEMACS, UACS, OUR_ACS};
     private static String directory = null;
+    private static int workloadsNumber = -1;
 
     public static void main(String[] arg) {
         LOGGER.info("Welcome to CloudSim Plus Simulation Toolkit.");
@@ -31,34 +32,35 @@ public class MainClass {
         while (program == null) {
             System.out.println("Program Id: " );
 
-            int id = scanner.nextInt();
-            scanner.nextLine();
+            String id = scanner.nextLine();
 
-            switch (id) {
-                case 1:
-                    program = PROGRAM.valueOf("BFD");
-                    break;
-                case 2:
-                    program = PROGRAM.valueOf("FFD");
-                    break;
-                case 3:
-                    program = PROGRAM.valueOf("CRA_DP");
-                    break;
-                case 4:
-                    program = PROGRAM.valueOf("OEMACS");
-                    break;
-                case 5:
-                    program = PROGRAM.valueOf("UACS");
-                    break;
-                case 6:
-                    program = PROGRAM.valueOf("OUR_ACS");
-                    break;
-                default:
+            try {
+                switch (Integer.parseInt(id)) {
+                    case 1:
+                        program = PROGRAM.valueOf("BFD");
+                        break;
+                    case 2:
+                        program = PROGRAM.valueOf("FFD");
+                        break;
+                    case 3:
+                        program = PROGRAM.valueOf("CRA_DP");
+                        break;
+                    case 4:
+                        program = PROGRAM.valueOf("OEMACS");
+                        break;
+                    case 5:
+                        program = PROGRAM.valueOf("UACS");
+                        break;
+                    case 6:
+                        program = PROGRAM.valueOf("OUR_ACS");
+                        break;
+                    default:
                         LOGGER.warn("The given program Id {} does not exist!", id);
+                }
+            } catch (NumberFormatException e) {
+                showInvalidInputError(id);
             }
         }
-
-        LOGGER.info("You chose the {} program successfully.", program.toString());
 
         LOGGER.info("Please insert the directory that you want to save the experimental results.");
 
@@ -72,6 +74,32 @@ public class MainClass {
             }
         }
 
+        LOGGER.info("Please insert the total number of VM creation requests in range (0,14000] during the simulation time.");
+
+        while (workloadsNumber == -1) {
+            System.out.println("Number of requests: ");
+            String numberOfReqs = scanner.nextLine();
+
+            try {
+
+                if (Integer.parseInt(numberOfReqs) > 0 && Integer.parseInt(numberOfReqs) <= 14000) {
+                    workloadsNumber = Integer.parseInt(numberOfReqs);
+                }else {
+                    showInvalidInputError(numberOfReqs);
+                }
+
+            } catch (NumberFormatException e) {
+                showInvalidInputError(numberOfReqs);
+            }
+        }
+
+        LOGGER.info("You chose the destination {} for the {} program successfully with {} VM creation requests.",
+            directory,
+            program.toString(),
+            workloadsNumber);
+
+        LOGGER.info("To change more settings please use the ParentClass.");
+
         runProgram(program);
     }
 
@@ -84,24 +112,24 @@ public class MainClass {
 
         switch (program) {
             case BFD:
-                new BFDProgram(directory, cloudFederation);
+                new BFDProgram(directory, cloudFederation, workloadsNumber);
                 break;
             case FFD:
-                new FFDProgram(directory, cloudFederation);
+                new FFDProgram(directory, cloudFederation, workloadsNumber);
                 break;
             case CRA_DP:
-                new CraDpProgram(directory, cloudFederation);
+                new CraDpProgram(directory, cloudFederation, workloadsNumber);
                 break;
             case OEMACS:
-                new Liu2016Program(directory, cloudFederation);
+                new Liu2016Program(directory, cloudFederation, workloadsNumber);
                 break;
             case UACS:
                 boolean vmMigration = askYesNoQuestion("Do you need live Vm migration (Vm consolidation)?");
-                new Liu2017Program(directory, cloudFederation, vmMigration);
+                new Liu2017Program(directory, cloudFederation, vmMigration, workloadsNumber);
                 break;
             case OUR_ACS:
                 vmMigration = askYesNoQuestion("Do you need live Vm migration (Vm consolidation)?");
-                new OurAcsProgram(directory, cloudFederation, vmMigration);
+                new OurAcsProgram(directory, cloudFederation, vmMigration, workloadsNumber);
                 break;
             default:
                 throw new IllegalStateException("The requested program was not found!");
@@ -124,5 +152,9 @@ public class MainClass {
                 LOGGER.warn("Could not recognise the given answer!");
             }
         }
+    }
+
+    private static void showInvalidInputError(final String input) {
+        LOGGER.warn("The given input {} is invalid!", input);
     }
 }
