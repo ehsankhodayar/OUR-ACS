@@ -35,8 +35,7 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
             throw new IllegalStateException("You don't have any Datacenter created.");
         }
 
-        LOGGER.info("{}: {} is trying to find suitable resources for allocating to the new Vm creation requests inside the datacenters of the " +
-                "current cloud provider.",
+        LOGGER.info("{}: {} is trying to find suitable resources for allocating to the new Vm creation requests inside the available datacenters",
             getSimulation().clockStr(),
             getName());
 
@@ -47,53 +46,15 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
             .collect(Collectors.toList());
 
         if (datacenterSolutionEntryList.isEmpty()) {
-            LOGGER.warn("{}: {} could not find any suitable resources for allocating to the new Vm creation requests inside the datacenters " +
-                    "of the current cloud provider!",
+            LOGGER.warn("{}: {} could not find any suitable resources for allocating to the new Vm creation requests inside the available datacenters!",
                 getSimulation().clockStr(),
                 getName());
 
-            List<Datacenter> federatedDcList = getFederatedDatacenters();
+            failVms(getVmWaitingList());
 
-            if (federatedDcList.isEmpty()) {
-                failVms(getVmWaitingList());
-
-                return false;
-            } else {
-                LOGGER.info("{}: {} is trying to federate the new Vm creation requests.",
-                    getSimulation().clockStr(),
-                    getName());
-
-                datacenterSolutionEntryList = federatedDcList.parallelStream()
-                    .filter(federatedDc -> !getAllowedHostList(federatedDc).isEmpty())
-                    .map(federatedDc -> new DatacenterSolutionEntry(federatedDc, getVmWaitingList(), getAllowedHostList(federatedDc)))
-                    .filter(datacenterSolutionEntry -> !datacenterSolutionEntry.getSolution().isEmpty())
-                    .collect(Collectors.toList());
-
-                if (datacenterSolutionEntryList.isEmpty()) {
-                    LOGGER.warn("{}: {} could not find any suitable resources for allocating to the new Vm creation requests " +
-                            "inside the federated environment!",
-                        getSimulation().clockStr(),
-                        getName());
-
-                    failVms(getVmWaitingList());
-
-                    return false;
-                } else {
-                    LOGGER.info("{}: {} has found some suitable resources for allocating to the new Vm creation requests inside " +
-                            "the federated environment.",
-                        getSimulation().clockStr(),
-                        getName());
-
-                    Map<Vm, Host> solution = selectKneePoint(datacenterSolutionEntryList, getVmWaitingList());
-//                    Map<Vm, Host> solution = selectMinimumEnergyConsumption(datacenterSolutionEntryList, getVmWaitingList());
-                    performSolution(solution, isFallbackDatacenter);
-
-                    return true;
-                }
-            }
+            return false;
         } else {
-            LOGGER.info("{}: {} has found some suitable resources for allocating to the new Vm creation requests inside the datacenters of the " +
-                    "current cloud provider.",
+            LOGGER.info("{}: {} has found some suitable resources for allocating to the new Vm creation requests inside the available datacenters.",
                 getSimulation().clockStr(),
                 getName());
 
