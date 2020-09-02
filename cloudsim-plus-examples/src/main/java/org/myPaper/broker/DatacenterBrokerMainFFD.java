@@ -59,8 +59,7 @@ public class DatacenterBrokerMainFFD extends DatacenterBrokerMain {
         }
 
         if (vmList.isEmpty()) {
-            LOGGER.info("{}: {} has found suitable resources for all the new Vm creation requests inside the datacenters of the " +
-                    "current cloud provider.",
+            LOGGER.info("{}: {} has found suitable resources for all the new Vm creation requests inside the available datacenters.",
                 getSimulation().clockStr(),
                 getName());
 
