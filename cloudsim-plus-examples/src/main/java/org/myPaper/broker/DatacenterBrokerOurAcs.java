@@ -39,7 +39,7 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
             getSimulation().clockStr(),
             getName());
 
-        List<DatacenterSolutionEntry> datacenterSolutionEntryList = getProviderDatacenters().parallelStream()
+        List<DatacenterSolutionEntry> datacenterSolutionEntryList = getDatacenterList().parallelStream()
             .filter(datacenter -> !getAllowedHostList(datacenter).isEmpty())
             .map(datacenter -> new DatacenterSolutionEntry(datacenter, getVmWaitingList(), getAllowedHostList(datacenter)))
             .filter(datacenterSolutionEntry -> !datacenterSolutionEntry.getSolution().isEmpty())
