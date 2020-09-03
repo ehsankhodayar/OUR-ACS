@@ -46,7 +46,7 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
             .collect(Collectors.toList());
 
         if (datacenterSolutionEntryList.isEmpty()) {
-            LOGGER.warn("{}: {} could not find any suitable resources for allocating to the new Vm creation requests inside the available datacenters!",
+            LOGGER.warn("{}: {} could not find any suitable resource for allocating to the new Vm creation requests inside the available datacenters!",
                 getSimulation().clockStr(),
                 getName());
 

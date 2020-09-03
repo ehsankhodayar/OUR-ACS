@@ -9,7 +9,7 @@ import org.myPaper.acsAlgorithms.DatacenterSolutionEntry;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DatacenterBrokerMainFFD extends DatacenterBrokerMain {
+public class DatacenterBrokeFFD extends DatacenterBrokerMain {
 
     /**
      * Creates a DatacenterBroker giving a specific name.
@@ -20,7 +20,7 @@ public class DatacenterBrokerMainFFD extends DatacenterBrokerMain {
      * @param name           the DatacenterBroker name
      * @param datacenterList list of connected datacenters to this broker
      */
-    public DatacenterBrokerMainFFD(CloudSim simulation, String name, List<Datacenter> datacenterList) {
+    public DatacenterBrokeFFD(CloudSim simulation, String name, List<Datacenter> datacenterList) {
         super(simulation, name, datacenterList);
     }
 

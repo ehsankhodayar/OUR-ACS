@@ -69,12 +69,11 @@ public class DatacenterBrokerLiu extends DatacenterBrokerMain {
 
         Map<Vm, Host> solutionMap;
 
-        LOGGER.info("{}: {} is trying to find suitable resources for allocating to the new Vm creation requests inside the datacenters of the " +
-                "current cloud provider.",
+        LOGGER.info("{}: {} is trying to find suitable resources for allocating to the new Vm creation requests inside the available datacenters.",
             getSimulation().clockStr(),
             getName());
 
-        for (Datacenter datacenter : getProviderDatacenters()) {
+        for (Datacenter datacenter : getDatacenterList()) {
             List<Host> allowedHostList = getAllowedHostList(datacenter);
 
             if (allowedHostList.isEmpty()) {
@@ -87,8 +86,8 @@ public class DatacenterBrokerLiu extends DatacenterBrokerMain {
             solutionMap = vmAllocationPolicy.findSolutionForVms(getVmWaitingList(), getAllowedHostList(datacenter)).orElse(Collections.emptyMap());
 
             if (!solutionMap.isEmpty()) {
-                LOGGER.info("{}: {} has found some suitable resources for allocating to the new Vm creation requests inside the datacenters of the " +
-                        "current cloud provider.",
+                LOGGER.info("{}: {} has found some suitable resources for allocating to the new Vm creation " +
+                        "requests inside the available datacenters.",
                     getSimulation().clockStr(),
                     getName());
 
@@ -98,43 +97,10 @@ public class DatacenterBrokerLiu extends DatacenterBrokerMain {
             }
         }
 
-        LOGGER.warn("{}: {} could not find any suitable resources for allocating to the new Vm creation requests inside the datacenters " +
-                "of the current cloud provider!",
+        LOGGER.warn("{}: {} could not find any suitable resource for allocating to " +
+                "the new Vm creation requests inside the available datacenters!",
             getSimulation().clockStr(),
             getName());
-
-        //When the program reaches here, it means so solution was found in the provider's datacenters for the Vm waiting list
-        List<Datacenter> federatedDcList = getFederatedDatacenters();
-
-        if (!federatedDcList.isEmpty()) {
-
-            LOGGER.info("{}: {} is trying to federate the new Vm creation requests.",
-                getSimulation().clockStr(),
-                getName());
-
-            for (Datacenter federatedDc : federatedDcList) {
-                VmAllocationPolicyMigrationStaticThresholdLiu vmAllocationPolicy =
-                    (VmAllocationPolicyMigrationStaticThresholdLiu) federatedDc.getVmAllocationPolicy();
-
-                solutionMap = vmAllocationPolicy.findSolutionForVms(getVmWaitingList(), getAllowedHostList(federatedDc)).orElse(Collections.emptyMap());
-
-                if (!solutionMap.isEmpty()) {
-                    LOGGER.info("{}: {} has found some suitable resources for allocating to the new Vm creation requests inside " +
-                            "the federated environment.",
-                        getSimulation().clockStr(),
-                        getName());
-
-                    sendVmCreationRequest(federatedDc, solutionMap, isFallbackDatacenter);
-
-                    return true;
-                }
-            }
-
-            LOGGER.warn("{}: {} could not find any suitable resources for allocating to the new Vm creation requests " +
-                    "inside the federated environment!",
-                getSimulation().clockStr(),
-                getName());
-        }
 
         failVms(getVmWaitingList());
 

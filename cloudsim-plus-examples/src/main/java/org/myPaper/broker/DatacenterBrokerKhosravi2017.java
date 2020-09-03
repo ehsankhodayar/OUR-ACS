@@ -52,7 +52,7 @@ public class DatacenterBrokerKhosravi2017 extends DatacenterBrokerMain {
         Datacenter datacenter = runKhosraviAlgorithm(vm, getDatacenterList());
 
         if (datacenter == Datacenter.NULL) {
-            LOGGER.warn("{}: {} could not find suitable resources for all the new Vm creation requests inside the available datacenters!",
+            LOGGER.warn("{}: {} could not find suitable resource for all the new Vm creation requests inside the available datacenters!",
                 getSimulation().clockStr(),
                 this);
         }
