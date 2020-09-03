@@ -36,10 +36,9 @@ public class DatacenterBrokerBFD extends DatacenterBrokerMain {
         }
 
         //Look for suitable resources inside the datacenters of current cloud provider
-        LOGGER.info("{}: {} is trying to find suitable resources for allocating to the new Vm creation requests inside the datacenters of the " +
-                "current cloud provider.",
+        LOGGER.info("{}: {} is trying to find suitable resources for allocating to the new Vm creation requests inside the available datacenters.",
             getSimulation().clockStr(),
-            getName());
+            this);
 
         final Comparator<Host> activeComparator = Comparator.comparing(Host::isActive).reversed();
         final Comparator<Host> comparator = activeComparator.thenComparingLong(Host::getFreePesNumber);
@@ -48,7 +47,7 @@ public class DatacenterBrokerBFD extends DatacenterBrokerMain {
 
         vmLoop:
         for (Vm vm : getVmWaitingList()) {
-            for (Datacenter datacenter : getProviderDatacenters()) {
+            for (Datacenter datacenter : getDatacenterList()) {
                 Optional<Host> selectedHost = getAllowedHostList(datacenter).parallelStream()
                     .filter(host -> host.isSuitableForVm(vm))
                     .min(comparator);
@@ -65,61 +64,19 @@ public class DatacenterBrokerBFD extends DatacenterBrokerMain {
         }
 
         if (vmList.isEmpty()) {
-            LOGGER.info("{}: {} has found suitable resources for all the new Vm creation requests inside the datacenters of the " +
-                    "current cloud provider.",
+            LOGGER.info("{}: {} has found suitable resources for all the new Vm creation requests inside the available datacenters.",
                 getSimulation().clockStr(),
                 getName());
 
             return true;
         } else {
-            LOGGER.warn("{}: {} could not find suitable resources for all the new Vm creation requests inside the datacenters " +
-                    "of the current cloud provider!",
+            LOGGER.warn("{}: {} could not find suitable resources for all the new Vm creation requests inside the available datacenters!",
                 getSimulation().clockStr(),
                 getName());
 
-            //Look for suitable resources inside the federated datacenters
-            List<Datacenter> federatedDcList = getFederatedDatacenters();
+            failVms(vmList);
 
-            if (federatedDcList.isEmpty()) {
-                failVms(vmList);
-
-                return false;
-            } else {
-                LOGGER.info("{}: {} is trying to federate some of the new Vm creation requests.",
-                    getSimulation().clockStr(),
-                    getName());
-
-                vmLoop:
-                for (Vm vm : vmList) {
-                    for (Datacenter federatedDc : federatedDcList) {
-                        Optional<Host> selectedHost = getAllowedHostList(federatedDc).parallelStream()
-                            .filter(host -> host.isSuitableForVm(vm))
-                            .min(comparator);
-
-                        if (selectedHost.isPresent() && selectedHost.get() != Host.NULL) {
-                            vm.setHost(selectedHost.get());
-                            selectedHost.get().createTemporaryVm(vm);
-                            vmList.remove(vm);
-                            this.vmCreationRequests += requestVmCreation(federatedDc, isFallbackDatacenter, vm);
-
-                            continue vmLoop;
-                        }
-                    }
-                }
-
-                if (vmList.isEmpty()) {
-                    return true;
-                }else {
-                    LOGGER.warn("{}: {} could not find any suitable resource for some of the new Vm creation requests " +
-                            "inside the federated environment!",
-                        getSimulation().clockStr(),
-                        getName());
-
-                    failVms(vmList);
-
-                    return false;
-                }
-            }
+            return false;
         }
     }
 
