@@ -88,6 +88,7 @@ public class DatacenterBrokerOurAcs extends DatacenterBrokerMain {
             List<Datacenter> availableDatacenterList = getDatacenterList().stream()
                 .filter(datacenter -> datacenter != sourceDatacenter)
                 .filter(datacenter -> selfDatacenters || isExternalDatacenter(datacenter))
+                .filter(datacenter -> !getAllowedHostList(datacenter).isEmpty())
                 .collect(Collectors.toList());
 
             if (!availableDatacenterList.isEmpty()) {
