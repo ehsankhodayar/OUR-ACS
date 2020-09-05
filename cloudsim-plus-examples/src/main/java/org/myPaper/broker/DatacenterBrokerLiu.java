@@ -178,7 +178,7 @@ public class DatacenterBrokerLiu extends DatacenterBrokerMain {
                     getName());
 
                 solutionMapList = availableDatacenterList.parallelStream()
-                    .map(datacenter -> new DatacenterSolutionEntry(datacenter, getVmWaitingList(), getAllowedHostList(datacenter)))
+                    .map(datacenter -> new DatacenterSolutionEntry(datacenter, vmList, getAllowedHostList(datacenter)))
                     .filter(datacenterSolutionEntry -> !datacenterSolutionEntry.getSolution().isEmpty())
                     .collect(Collectors.toList());
 
