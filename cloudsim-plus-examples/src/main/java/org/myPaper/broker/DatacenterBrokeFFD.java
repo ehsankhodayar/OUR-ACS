@@ -7,6 +7,7 @@ import org.cloudbus.cloudsim.vms.Vm;
 import org.myPaper.acsAlgorithms.DatacenterSolutionEntry;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class DatacenterBrokeFFD extends DatacenterBrokerMain {
@@ -44,8 +45,10 @@ public class DatacenterBrokeFFD extends DatacenterBrokerMain {
         vmLoop:
         for (Vm vm : getVmWaitingList()) {
             for (Datacenter datacenter : getDatacenterList()) {
+                List<Host> allowedHostList = new ArrayList<>(getAllowedHostList(datacenter));
+                Collections.shuffle(allowedHostList);
 
-                for (Host host : getAllowedHostList(datacenter)) {
+                for (Host host : allowedHostList) {
                     if (host.isSuitableForVm(vm)) {
                         vm.setHost(host);
                         host.createTemporaryVm(vm);
