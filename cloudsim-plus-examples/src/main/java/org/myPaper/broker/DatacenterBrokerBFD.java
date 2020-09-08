@@ -6,10 +6,7 @@ import org.cloudbus.cloudsim.hosts.Host;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.myPaper.acsAlgorithms.DatacenterSolutionEntry;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class DatacenterBrokerBFD extends DatacenterBrokerMain {
     /**
@@ -48,7 +45,9 @@ public class DatacenterBrokerBFD extends DatacenterBrokerMain {
         vmLoop:
         for (Vm vm : getVmWaitingList()) {
             for (Datacenter datacenter : getDatacenterList()) {
-                Optional<Host> selectedHost = getAllowedHostList(datacenter).parallelStream()
+                List<Host> hostList = new ArrayList<>(getAllowedHostList(datacenter));
+                Collections.shuffle(hostList);
+                Optional<Host> selectedHost = hostList.parallelStream()
                     .filter(host -> host.isSuitableForVm(vm))
                     .min(comparator);
 
