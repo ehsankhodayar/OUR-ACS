@@ -37,8 +37,8 @@ public class DatacenterBrokerBFD extends DatacenterBrokerMain {
             getSimulation().clockStr(),
             this);
 
-        final Comparator<Host> activeComparator = Comparator.comparing(Host::isActive).reversed();
-        final Comparator<Host> comparator = activeComparator.thenComparingLong(Host::getFreePesNumber);
+//        final Comparator<Host> activeComparator = Comparator.comparing(Host::isActive).reversed();
+        final Comparator<Host> comparator = Comparator.comparingLong(Host::getFreePesNumber);
 
         List<Vm> vmList = new ArrayList<>(getVmWaitingList());
 
