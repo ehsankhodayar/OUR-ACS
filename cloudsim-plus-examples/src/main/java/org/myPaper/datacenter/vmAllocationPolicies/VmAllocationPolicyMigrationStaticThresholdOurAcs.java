@@ -653,8 +653,8 @@ public class VmAllocationPolicyMigrationStaticThresholdOurAcs
                             continue ;
                         }
 
-                        //In order to avoid from other new loops, we do not consider the migrating of host's Vms
-                        //In other words, we consider the occupied space by Vms which are chosen from this host for migrating out to another host
+                        //In order to avoid from other new loops, we consider the occupied space by Vms
+                        // which are chosen from this host for migrating out to another host
                         List<Vm> newVmList = getHostNewVmList(host, newMigrationMap, false);
 
                         if (isHostSuitableForVm(vmInLoop, host, newVmList)) {
