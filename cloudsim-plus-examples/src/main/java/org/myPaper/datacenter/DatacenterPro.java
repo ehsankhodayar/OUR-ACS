@@ -411,7 +411,8 @@ public class DatacenterPro extends DatacenterSimple {
     }
 
     /**
-     * Gets the list of Vms that have been created on this datacenter. It consists both running and finished Vms.
+     * Gets the list of Vms that have been created on this datacenter. It consists both running and finished Vms. Note that, VMs
+     * that have been migrated to other data centers, are not considered.
      *
      * @return
      */
@@ -446,7 +447,10 @@ public class DatacenterPro extends DatacenterSimple {
         }
 
         //In a federated environment some VMs might not be in this data center any more.
-        final int numberOfCreatedVms = Math.max(getCreatedVmList().size(), vmNumberOfVmMigrationsMap.size());
+        final int numberVMsThatAreNotHereAnyMore = (int) vmNumberOfVmMigrationsMap.keySet().stream()
+            .filter(vm -> !getCreatedVmList().contains(vm))
+            .count();
+        final int numberOfCreatedVms = getCreatedVmList().size() + numberVMsThatAreNotHereAnyMore;
 
         return vmNumberOfVmMigrationsMap.keySet().stream()
             .mapToDouble(integer -> (integer.getTotalMipsCapacity() * integer.getHost().getVmScheduler().getVmMigrationCpuOverhead() /
