@@ -26,6 +26,8 @@ public class DatacenterPowerSupplyOverheadPowerAware extends DatacenterPowerSupp
     /** @see #getPower() */
     private double power;
 
+    private double energyCost;
+
     private double sumPUE;
 
     private int numberOfPueSamples;
@@ -41,6 +43,7 @@ public class DatacenterPowerSupplyOverheadPowerAware extends DatacenterPowerSupp
     public DatacenterPowerSupplyOverheadPowerAware(final Datacenter datacenter) {
         this.datacenter = datacenter;
 
+        energyCost = 0;
         SLEEP_MODE_POWER_CONSUMPTION = 10;
         MINIMUM_IT_POWER_CONSUMPTION = datacenter.getHostList().size() * SLEEP_MODE_POWER_CONSUMPTION;
         MAXIMUM_IT_POWER_CONSUMPTION = datacenter.getHostList().stream().mapToDouble(host -> host.getPowerModel().getMaxPower()).sum();
@@ -71,6 +74,8 @@ public class DatacenterPowerSupplyOverheadPowerAware extends DatacenterPowerSupp
         if (Double.isNaN(IT_PowerConsumption) || Double.isNaN(extraOverhead)) {
             throw new IllegalStateException("The IT power consumption or overhead power consumption can not be NaN!");
         }
+
+        energyCost += getDatacenterPro().getTotalEnergyCost((IT_PowerConsumption + extraOverhead) / 3600);
 
         sumPUE += getDynamicPUE(power, IT_PowerConsumption);
         numberOfPueSamples++;
@@ -160,5 +165,17 @@ public class DatacenterPowerSupplyOverheadPowerAware extends DatacenterPowerSupp
         }
 
         return sumPUE / numberOfPueSamples;
+    }
+
+    private DatacenterPro getDatacenterPro() {
+        return (DatacenterPro) datacenter;
+    }
+
+    /**
+     * Gets the total energy cost in Cents from the beginning of the simulation.
+     * @return the total energy cost in Cents
+     */
+    public double getEnergyCost() {
+        return energyCost;
     }
 }

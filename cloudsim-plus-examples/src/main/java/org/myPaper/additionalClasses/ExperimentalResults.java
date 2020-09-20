@@ -128,10 +128,11 @@ public class ExperimentalResults {
         for (DatacenterBroker broker : BROKERS) {
             for (Datacenter datacenter : getProviderDatacenterList(broker)) {
                 DatacenterPro datacenterPro = (DatacenterPro) datacenter;
+
                 double averageHostsUptime = datacenterPro.getHostsTotalUptime()  /datacenter.getHostList().size();
                 double totalEnergyConsumption = (datacenter.getPower() / 1000 / 3600);//IT energy consumption + Overhead energy consumption in KWh
                 double totalCarbonEmission = datacenterPro.getTotalCarbonFootprint(totalEnergyConsumption * 1000) * 1000;//In Kg
-                double totalEnergyCost = datacenterPro.getTotalEnergyCost(totalEnergyConsumption * 1000) / 100;//In Dollar
+                double totalEnergyCost = datacenterPro.getPowerSupplyOverheadPowerAware().getEnergyCost() / 100;//In Dollar
                 double totalCarbonTax = datacenterPro.getTotalCarbonTax(totalEnergyConsumption * 1000) / 100;
                 double totalCost = totalEnergyCost + totalCarbonTax;
                 double pdm = datacenterPro.getPDM();
@@ -203,10 +204,10 @@ public class ExperimentalResults {
                 averageESV += esv;
                 averagePUE += datacenterPro.getPowerSupplyOverheadPowerAware().getAveragePueDuringSimulation();
                 totalEnergyConsumption += (datacenter.getPower() / 1000 / 3600);
-                totalEnergyCost += datacenterPro.getTotalEnergyCost(datacenter.getPower() / 3600) / 100;
+                totalEnergyCost += datacenterPro.getPowerSupplyOverheadPowerAware().getEnergyCost() / 100;
                 totalCarbonEmission += datacenterPro.getTotalCarbonFootprint(datacenter.getPower() / 3600) * 1000;
                 totalCarbonTax += datacenterPro.getTotalCarbonTax(datacenter.getPower() / 3600) / 100;
-                totalCost += datacenterPro.getTotalEnergyCost(datacenter.getPower() / 3600) / 100 +
+                totalCost += datacenterPro.getPowerSupplyOverheadPowerAware().getEnergyCost() / 100 +
                     datacenterPro.getTotalCarbonTax(datacenter.getPower() / 3600) / 100;
             }
         }

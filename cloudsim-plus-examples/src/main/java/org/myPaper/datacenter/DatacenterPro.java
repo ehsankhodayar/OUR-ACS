@@ -445,7 +445,8 @@ public class DatacenterPro extends DatacenterSimple {
             return 0;
         }
 
-        final int numberOfCreatedVms = getCreatedVmList().size();
+        //In a federated environment some VMs might not be in this data center any more.
+        final int numberOfCreatedVms = Math.max(getCreatedVmList().size(), vmNumberOfVmMigrationsMap.size());
 
         return vmNumberOfVmMigrationsMap.keySet().stream()
             .mapToDouble(integer -> (integer.getTotalMipsCapacity() * integer.getHost().getVmScheduler().getVmMigrationCpuOverhead() /
