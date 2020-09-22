@@ -251,7 +251,11 @@ public abstract class ParentClass {
         um.setMaxResourceUtilization(1);
         um.setUtilizationUpdateSchedulingInterval(UTILIZATION_UPDATE_SCHEDULING_INTERVAL);
 
-        um.setUtilizationUpdateFunction(utilizationModelDynamic -> roundDouble.apply(random.nextDouble() * (1 - 0.01) + 0.01, 4));
+        um.setUtilizationUpdateFunction(utilizationModelDynamic -> {
+            int randomInt = random.nextInt(100 - 1 + 1) + 1;
+            double util = (double) randomInt / 100;
+            return roundDouble.apply( util, 4);
+        });
 
         return um;
     }
@@ -342,13 +346,13 @@ public abstract class ParentClass {
         List<Cloudlet> provider3_cloudletList = new ArrayList<>();
 
         cloudletList.forEach(cloudlet -> {
-            double randomNumber = random.nextDouble() * (1 - 0.0001) + 0.0001;
+            double randomNumber = random.nextDouble();
 
             //Using the roulette wheel technique
-            if (randomNumber > 0 && randomNumber <= provider3_workload_portion) {
+            if (randomNumber >= 0 && randomNumber <= provider3_workload_portion) {
                 provider3_vmList.add(cloudlet.getVm());
                 provider3_cloudletList.add(cloudlet);
-            } else if (randomNumber > provider1_workload_portion && randomNumber <= provider1_workload_portion + provider2_workload_portion) {
+            } else if (randomNumber > provider3_workload_portion && randomNumber <= provider2_workload_portion + provider3_workload_portion) {
                 provider2_vmList.add(cloudlet.getVm());
                 provider2_cloudletList.add(cloudlet);
             } else {
