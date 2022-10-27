@@ -321,11 +321,13 @@ public abstract class ParentClass {
         if (numberOfSubmmitedWorkloads < cloudletList.size()) {
             List<Cloudlet> newCloudletList = new ArrayList<>();
             for (int i = numberOfSubmmitedWorkloads; i < cloudletList.size(); i++) {
+                //If you want to submit all cloudlets at the beginning, disable the following condition and run the commented line after it.
                 if (cloudletList.get(i).getSubmissionDelay() <= clock) {
                     cloudletList.get(i).setSubmissionDelay(0);
                     cloudletList.get(i).getVm().setSubmissionDelay(0);
                     newCloudletList.add(cloudletList.get(i));
                 }
+//                newCloudletList.add(cloudletList.get(i));
             }
 
             Collections.shuffle(newCloudletList);
