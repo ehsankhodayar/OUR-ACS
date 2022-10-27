@@ -6,11 +6,14 @@ import org.myPaper.acsAlgorithms.OurAcsAlgorithm.OurAcs;
 import org.myPaper.broker.DatacenterBrokerOurAcs;
 import org.myPaper.datacenter.vmAllocationPolicies.VmAllocationPolicyMigrationStaticThresholdOurAcs;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class OurAcsProgram extends ParentClass {
     public OurAcsProgram(final String directory, final boolean cloudFederation, final boolean liveVmMigration, final int workloadsNumber) {
         super(directory, cloudFederation, liveVmMigration, workloadsNumber);
+
+        ourAcsExecutionTimeList = new ArrayList<>();
 
         runProgram();
     }

@@ -113,6 +113,9 @@ public abstract class ParentClass {
     protected final int CLOUDLET_LENGTH = 50_000_000; //Million Instructions (MI)
     protected final int MAXIMUM_NUMBER_OF_CLOUDLETS; //cloudlets will be submitted dynamically to the broker during the simulation time
 
+    //OUR-ACS Overhead
+    public static List<Double> ourAcsExecutionTimeList;
+
     public ParentClass(final String directory, final boolean cloudFederation, final boolean liveVmMigration, final int totalVmReqs) {
         if (directory == null || !Files.exists(Paths.get(directory))) {
             throw new IllegalStateException("The given directory is not allowed!");
@@ -405,7 +408,7 @@ public abstract class ParentClass {
 
     protected void generateExperimentalResults() {
         ExperimentalResults results =
-            new ExperimentalResults(OUTPUT_DIRECTORY, Arrays.asList(broker1, broker2, broker3), SIMULATION_START_TIME, LocalTime.now());
+            new ExperimentalResults(OUTPUT_DIRECTORY, Arrays.asList(broker1, broker2, broker3), SIMULATION_START_TIME, LocalTime.now(), ourAcsExecutionTimeList);
 
         results.generateResults();
     }

@@ -23,10 +23,13 @@ public class ExperimentalResults {
     private final LocalTime SIMULATION_START_TIME;
     private final LocalTime SIMULATION_FINISH_TIME;
 
+    private final List<Double> OUR_ACS_EXECUTION_TIME;
+
     public ExperimentalResults(final String outputDirectory,
                                final List<DatacenterBroker> brokerList,
                                final LocalTime startTime,
-                               final LocalTime finishTime) {
+                               final LocalTime finishTime,
+                               final List<Double> ourAcsExecutionTimeList) {
         int numberOfSubmittedVmReqs = brokerList.stream()
             .mapToInt(datacenterBroker ->
                 datacenterBroker.getVmCreatedList().size() + datacenterBroker.getVmWaitingList().size() + datacenterBroker.getVmFailedList().size())
@@ -38,6 +41,8 @@ public class ExperimentalResults {
         if (!SOURCE_DIR.mkdir()) {
             throw new IllegalStateException("The system cannot create a new directory in the path specified");
         }
+
+        OUR_ACS_EXECUTION_TIME = ourAcsExecutionTimeList;
 
         BROKERS = brokerList;
         SIMULATION_START_TIME = startTime;
@@ -98,6 +103,20 @@ public class ExperimentalResults {
             .findFirst()
             .orElse(0);
 
+        double ourAcsAverageExecutionTime = 0.0;
+        int g = 5;
+
+        if (OUR_ACS_EXECUTION_TIME != null) {
+            if (!OUR_ACS_EXECUTION_TIME.isEmpty()) {
+                double sum = 0.0;
+
+                for (Double execTime : OUR_ACS_EXECUTION_TIME) {
+                    sum += execTime;
+                }
+                ourAcsAverageExecutionTime = sum / OUR_ACS_EXECUTION_TIME.size();
+            }
+        }
+
         List<String> contentList = new ArrayList<>();
 
         contentList.add("Simulation Start Time: " + SIMULATION_START_TIME);
@@ -110,6 +129,10 @@ public class ExperimentalResults {
         contentList.add("Number of Created Vms: " + numberOfCreatedVms);
         contentList.add("Number of Waiting Vms: " + numberOfWaitingVms);
         contentList.add("Number of Failed Vms: " + numberOfFailedVms);
+
+        if (OUR_ACS_EXECUTION_TIME != null) {
+            contentList.add("OUR-ACS Average Execution Time: " + ourAcsAverageExecutionTime);
+        }
 
         String fileName = SOURCE_DIR.getAbsolutePath() + "\\" + "readme";
         createNewFile(fileName, contentList);

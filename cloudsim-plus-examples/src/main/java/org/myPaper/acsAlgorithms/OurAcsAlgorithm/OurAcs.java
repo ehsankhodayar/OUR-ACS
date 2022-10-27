@@ -7,6 +7,7 @@ import org.myPaper.acsAlgorithms.DatacenterSolutionEntry;
 import org.myPaper.additionalClasses.NormalizeZeroOne;
 import org.myPaper.additionalClasses.SortMap;
 import org.myPaper.datacenter.DatacenterPro;
+import org.myPaper.programs.OurAcsProgram;
 
 import java.util.*;
 import java.util.function.BiFunction;
@@ -820,7 +821,11 @@ public class OurAcs {
      * @return the best solution if available, empty solution otherwise
      */
     public Optional<Map<Vm, Host>> getBestSolution(final List<Vm> vmList, final DatacenterPro datacenter, final List<Host> allowedHostList) {
+        double startTime = System.currentTimeMillis();
         runOurAcs(vmList, allowedHostList, datacenter);
+        double finishTime = System.currentTimeMillis();
+        double runTime= finishTime - startTime;
+        OurAcsProgram.ourAcsExecutionTimeList.add(runTime);
         return Optional.of(lastGenerationBestSolution);
     }
 }
